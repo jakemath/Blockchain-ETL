@@ -1,0 +1,7 @@
+{
+    "uniswap": {
+        "MODULE": "tasks/uniswap",
+        "FUNCTION": "uniswap",
+        "ON_CHAIN": "true"
+    }
+}

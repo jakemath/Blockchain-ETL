@@ -1,0 +1,37 @@
+# Author: Jake Mathai
+# Purpose: Docker compose config
+
+version: '3'
+volumes:
+  uniswap-db:
+services:
+  db:
+    image: postgres
+    container_name: db
+    hostname: db
+    ports:
+      - '5432:5432'
+    expose:
+      - '5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - uniswap-db:/var/lib/postgresql/data
+  uniswap:
+    restart: always
+    container_name: uniswap
+    hostname: uniswap
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    command: ['node', 'dispatch.js']
+    depends_on:
+      - db
+    environment:
+      - ON_CHAIN=true
+      - MODULE=tasks/uniswap
+      - FUNCTION=uniswap
+      - PROD=true
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres

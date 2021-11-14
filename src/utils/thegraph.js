@@ -30,21 +30,6 @@ const SUBGRAPHS = {
                     'id',
                     'token0 {id}',
                     'token1 {id}',
-                    // 'reserve0',
-                    // 'reserve1',
-                    // 'totalSupply',
-                    // 'reserveETH',
-                    // 'reserveUSD',
-                    // 'trackedReserveETH',
-                    // 'token0Price',
-                    // 'token1Price',
-                    // 'volumeToken0',
-                    // 'volumeToken1',
-                    // 'volumeUSD',
-                    // 'untrackedVolumeUSD',
-                    // 'txCount',
-                    // 'createdAtTimestamp',
-                    // 'createdAtBlockNumber',
                 ]
             }
         }

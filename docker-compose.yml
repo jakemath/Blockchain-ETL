@@ -5,7 +5,7 @@ version: '3'
 volumes:
   uniswap-db:
 services:
-  db:
+  db:  # DB container
     image: postgres
     container_name: db
     hostname: db
@@ -18,7 +18,12 @@ services:
       - POSTGRES_PASSWORD=postgres
     volumes:
       - uniswap-db:/var/lib/postgresql/data
-  uniswap:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]  # Test indicating when db ready to accept connections
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  uniswap:  # Data streaming container
     restart: always
     container_name: uniswap
     hostname: uniswap
@@ -27,7 +32,8 @@ services:
       dockerfile: Dockerfile
     command: ['node', 'dispatch.js']
     depends_on:
-      - db
+      db:
+        condition: service_healthy  # Wait for db before executing
     environment:
       - ON_CHAIN=true
       - MODULE=tasks/uniswap

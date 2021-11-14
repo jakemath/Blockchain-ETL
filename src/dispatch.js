@@ -1,9 +1,7 @@
 /*
 Author: Jake Mathai
-Purpose: Entrypoint script for running tasks
+Purpose: Entrypoint script for running tasks. Export the TASK environment variable as specified in conf.json to run the task
 */
-
-const { config } = require('dotenv')
 
 const time = require('./utils/time')
 const { migrate } = require('./db/migrations')
@@ -11,7 +9,6 @@ const { migrate } = require('./db/migrations')
 const dispatch = async() => {
     let configData
     if (process.env['PROD'] == 'true') {
-        await time.sleep(5)
         await migrate()
         configData = process.env
     }
@@ -19,15 +16,6 @@ const dispatch = async() => {
         configData = require('./conf')[process.env['TASK']]
     const taskFunction = configData['FUNCTION']
     if (configData['ON_CHAIN']) {
-        if (configData['REQUIRES_KEY']) {
-            config()
-            while (process.env['PRIVATE_KEY'] == null) {
-                console.log('Awaiting PRIVATE_KEY variable')
-                await time.sleep(5)
-                config()
-            }
-            console.log('Private key set')
-        }
         const hre = require('hardhat')
         await hre.run(taskFunction)
     }

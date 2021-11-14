@@ -1,18 +1,23 @@
-# UniswapETL
-Basic ETL pipeline written in Node.js for streaming and storing data from Uniswap V2 using Hardhat, Ethers.js & PostgreSQL.
+# Crypto ETL
+Crypto data ETL framework for streaming and storing data from on and off-chain sources using Hardhat, Ethers.js & PostgreSQL. Includes an implementation for Uniswap V2 data streaming.
 
 ## Quickstart
-Ensure you have the latest version of `docker` & `docker-compose` on your machine. Clone the project:
+Ensure you have the latest versions of `docker` & `docker-compose` on your machine. Clone the project:
 
-`git clone -b dev git@github.com:jakemath/UniswapETL.git`
+`git clone https://github.com/jakemath/Crypto-ETL`
 
 Move into the project directory and run the containers:
 
 `cd UniswapETL && bash run.sh`
 
-This will immediately build and run the relevant project containers using `docker-compose`.
+This will immediately build and run the relevant task containers defined in `docker-compose.yml` using `docker-compose`.
 
-Once the project is finished building, you will be streaming near real-time data from Uniswap! 
+Once the build completes, you will be streaming near real-time data from Uniswap! 
 
 ## Architecture
 
+This framework is designed to concurrently stream several data feeds, even on the same host. 
+
+Each distinct data feed can be assigned its own docker container with unique environment configurations. 
+
+![Design](design.png)

@@ -5,6 +5,7 @@ Purpose: The Graph client
 
 const axios = require('axios')
 
+// Subgraph config - add an entry for each subgraph, and add entries for each of the subgraph's entities of interest, along with the desired fields
 const SUBGRAPHS = {
     'UniswapV2': {
         'url': 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2',

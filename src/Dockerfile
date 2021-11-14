@@ -1,8 +1,9 @@
 # Author: Jake Mathai
-# Purpose: Node.js dockerfile
+# Purpose: Node.js-based dockerfile for data streaming
 
 FROM node:16.8
 WORKDIR /src
 COPY . ./
-RUN rm -rf node_modules package-lock.json
+RUN rm -rf node_modules || true
+RUN rm -rf package-lock.json || true
 RUN npm install

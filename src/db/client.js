@@ -5,8 +5,6 @@ Purpose: ORM for RDBMS
 
 const Sequelize = require('sequelize')
 
-const time = require('../utils/time')
-
 const sequelize = new Sequelize(
     process.env.DB_SCHEMA || 'postgres',
     process.env.DB_USER || 'postgres',
@@ -15,14 +13,16 @@ const sequelize = new Sequelize(
         'host': process.env.DB_HOST || 'db',
         'port': process.env.DB_PORT || 5432,
         'dialect': 'postgres',
+        'logging': false,
         'dialectOptions': {
             'ssl': process.env.DB_SSL == 'true'
         }
     }
 )
 
-// Time series of a pair contract's liquidity events. Tracks the running reserve levels & implied volume.
-// Volume is computed as the absolute difference in reserves from the last liquidity event
+// Time series of a pair contract liquidity events
+// - Tracks the running reserve levels for the pair contract
+// - Volume for each token calculated as the absolute change in reserve levels from the previous liquidity event
 const PairLiquidity = sequelize.define(
     'PairLiquidity',
     {
@@ -67,27 +67,7 @@ const PairLiquidity = sequelize.define(
     }
 )
 
-const createPairLiquidity = async liquidityPayload => {
-    const lastPairLiquidity = await PairLiquidity.findOne({
-        'where': { 
-            'address': liquidityPayload['address'] 
-        },
-        'order': [['datestamp', 'DESC']],
-    });
-    if (lastPairLiquidity == null) {
-        liquidityPayload['token0Volume'] = null
-        liquidityPayload['token1Volume'] = null
-    }
-    else {
-        liquidityPayload['token0Volume'] = Math.abs(liquidityPayload['reserve0'] - parseFloat(lastPairLiquidity['reserve0']))
-        liquidityPayload['token1Volume'] = Math.abs(liquidityPayload['reserve1'] - parseFloat(lastPairLiquidity['reserve1']))
-    }
-    await PairLiquidity.create(liquidityPayload)
-    return null
-}
-
 module.exports = {
     sequelize,
     PairLiquidity,
-    createPairLiquidity,
 }

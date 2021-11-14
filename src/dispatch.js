@@ -1,19 +1,16 @@
 /*
 Author: Jake Mathai
-Purpose: Entrypoint script for running tasks. Export the TASK environment variable as specified in conf.json to run the task
+Purpose: Entrypoint script for running tasks. 
+Reads the TASK environment variable, which maps to task-specific configurations defined in conf.json
 */
 
 const time = require('./utils/time')
 const { migrate } = require('./db/migrations')
 
 const dispatch = async() => {
-    let configData
-    if (process.env['PROD'] == 'true') {
+    const configData = require('./conf')[process.env['TASK']]
+    if (process.env['PROD'] == 'true')  // If prod --> migrate DB
         await migrate()
-        configData = process.env
-    }
-    else
-        configData = require('./conf')[process.env['TASK']]
     const taskFunction = configData['FUNCTION']
     if (configData['ON_CHAIN']) {
         const hre = require('hardhat')

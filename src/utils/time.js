@@ -1,6 +1,6 @@
 /*
 Author: Jake Mathai
-Purpose: Time utils
+Purpose: Time utilities
 */
 
 const now = () => new Date()

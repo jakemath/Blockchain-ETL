@@ -1,6 +1,9 @@
 /*
 Author: Jake Mathai
-Purpose: Uniswap data streaming tasks
+Purpose: Nearly real-time Uniswap data streaming - fetches pair contract addresses for target tokens, and listens for event emissions from the contracts
+- When an event is observed, reads the balances stored on the pair contracts and writes the updated values to the DB
+- Pair reserve volume is derived from the absolute change in reserve levels between events
+- 24-hour trading volume for a token is calculated by summing the volume observations across all the token's pairs in the past 24 hours
 */
 
 const { Op } = require('sequelize')
@@ -13,10 +16,10 @@ const thegraph = require('../utils/thegraph')
 const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
 
 const tokens = {
-    // "BADGER": '0x3472a5a71965499acd81997a54bba8d852c6e53d',
-    "WETH": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-    // "USDC": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-    // "LINK": "0x514910771af9ca656af840dff83e8264ecf986ca"
+    '0x3472a5a71965499acd81997a54bba8d852c6e53d': 'BADGER',
+    '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': 'WETH',
+    '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 'USDC',
+    '0x514910771af9ca656af840dff83e8264ecf986ca': 'LINK'
 }
 
 // Query subgraph for all pair contract addresses for the target token
@@ -52,12 +55,14 @@ const getUSDCPrice = async usdcPairContract => {
     return (usdcReserves*1e12)/tokenReserves  // USDC has only 6 decimal places
 }
 
+// Fetches liquidity events across all pairs including the target token in the past 24 hours, then aggregates the individual 
+// volume measures as the total traded amount
 const getToken24HVolume = async(tokenAddress='0x3472a5a71965499acd81997a54bba8d852c6e53d') => {
     let currentTime = time.unixTime()
     let oneDayAgo = currentTime - (60*60*24)
     currentTime = time.unixToDatetime(currentTime).toJSON()
     oneDayAgo = time.unixToDatetime(oneDayAgo).toJSON()
-    console.log(`Calculating ${tokenAddress} volume from ${oneDayAgo} to ${currentTime}`)
+    console.log(`Calculating ${tokens[tokenAddress]} volume from ${oneDayAgo} to ${currentTime}`)
     const tokenPairLiquidities = await db.PairLiquidity.findAll({
         'where': {
             [Op.or]: [
@@ -76,24 +81,46 @@ const getToken24HVolume = async(tokenAddress='0x3472a5a71965499acd81997a54bba8d8
     return volumes.reduce((a, b) => a + b, 0.0)
 }
 
+// Calculates token volumes as the change in reserve levels from the pair's previous liquidity event before writing to DB
+const createPairLiquidity = async liquidityPayload => {
+    const lastPairLiquidity = await db.PairLiquidity.findOne({
+        'where': { 
+            'address': liquidityPayload['address'] 
+        },
+        'order': [['datestamp', 'DESC']],
+    });
+    if (lastPairLiquidity == null) {
+        liquidityPayload['token0Volume'] = null
+        liquidityPayload['token1Volume'] = null
+    }
+    else {
+        liquidityPayload['token0Volume'] = Math.abs(liquidityPayload['reserve0'] - parseFloat(lastPairLiquidity['reserve0']))
+        liquidityPayload['token1Volume'] = Math.abs(liquidityPayload['reserve1'] - parseFloat(lastPairLiquidity['reserve1']))
+    }
+    await db.PairLiquidity.create(liquidityPayload)
+    return null
+}
+
 task('uniswap', 'Track uniswap tokens')
     .setAction(async() => {
-        // Use WebSocket provider to efficiently listen for events without maxing out provider query provisions
+        // Use WebSocket provider to efficiently listen for events without exceeding provider query provisions
         let provider = new ethers.providers.WebSocketProvider(process.env.WS_URL, 'mainnet')
         let contracts = {}
-        // Sync events emit from a pair contract whenever the Mint, Burn, or Swap functions are called, indicating a change in liquidity & volume
+        // Sync events emit whenever the Mint, Burn, or Swap functions are called, indicating a change in liquidity/volume
         const syncEventTopic = ethers.utils.id('Sync(uint112,uint112)')
-        const tokenAddresses = Object.values(tokens)
+        const tokenAddresses = Object.keys(tokens)
         const useDB = process.env['PROD'] == 'true'
 
         const monitorTokenPairs = async tokenAddress => {
-            console.log(`Fetching ${tokenAddress} pairs...`)
+            const symbol = tokens[tokenAddress]
+            console.log(`Fetching ${symbol} pairs...`)
             const pairs = await fetchAllTokenPairAddresses(tokenAddress)
+            console.log(`${pairs.length} pairs for ${symbol} found`)
             for (const pair of pairs) {
                 const pairAddress = pair['id']
                 const token0Address = pair['token0']['id']
                 const token1Address = pair['token1']['id']
-                console.log(`---> Monitoring pair: ${pairAddress}`)
+                console.log(`---> Monitoring ${symbol} pair ${pairAddress}`)
                 if (contracts[pairAddress] == null)
                     contracts[pairAddress] = new ethers.Contract(
                         pairAddress,
@@ -117,15 +144,15 @@ task('uniswap', 'Track uniswap tokens')
                                 'datestamp': time.now().toJSON(),
                                 'blockTimestamp': reserves[2]
                             }
+                            console.log(`${symbol} SYNC:`, liquidityPayload)
                             if (useDB) {
-                                await db.createPairLiquidity(liquidityPayload)
-                                console.time('Volume')
+                                await createPairLiquidity(liquidityPayload)
+                                const label = `VolumeCalc:${symbol}:${time.now().toJSON()}`
+                                console.time(label)
                                 const token24HVolume = await getToken24HVolume(tokenAddress)
-                                console.timeEnd('Volume')
-                                console.log(`${tokenAddress} 24-hour volume across all pairs: ${token24HVolume}`)
+                                console.timeEnd(label)
+                                console.log(`${symbol} 24-hour volume across all pairs: ${token24HVolume}`)
                             }
-                            else
-                                console.log(liquidityPayload)
                         }
                         catch(e) {
                             console.log(e)

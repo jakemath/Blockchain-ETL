@@ -18,6 +18,6 @@ Once the build completes, you will be streaming near real-time data from Uniswap
 
 This framework is designed to concurrently stream several data feeds, even on the same host. 
 
-Each distinct data feed can be assigned its own docker container with unique environment configurations. 
+Each distinct data feed can be deployed in its own docker container with unique environment configurations. 
 
 ![Design](design.png)

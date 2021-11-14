@@ -1,6 +1,6 @@
 /*
 Author: Jake Mathai
-Purpose: Nearly real-time Uniswap data streaming - fetches pair contract addresses for target tokens, and listens for event emissions from the contracts
+Purpose: Real-time Uniswap data streaming - fetches pair contract addresses for target tokens, and listens for event emissions from the contracts
 - When an event is observed, reads the balances stored on the pair contracts and writes the updated values to the DB
 - Pair reserve volume is derived from the absolute change in reserve levels between events
 - 24-hour trading volume for a token is calculated by summing the volume observations across all the token's pairs in the past 24 hours

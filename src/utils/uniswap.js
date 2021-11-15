@@ -71,27 +71,24 @@ const getToken24HVolume = async(tokenAddress='0x3472a5a71965499acd81997a54bba8d8
     currentTime = time.unixToDatetime(currentTime).toJSON()
     oneDayAgo = time.unixToDatetime(oneDayAgo).toJSON()
     console.log(`Calculating ${tokenSymbol || tokenAddress} volume from ${oneDayAgo} to ${currentTime}`)
-    let totalVolume = 0
-    let filter = {
-        'datestamp': {
-            [Op.between] : [oneDayAgo, currentTime]
-        },
-    }
-    for (tokenNum in [0, 1]) {
-        filter['where'] = {}
-        filter['where'][`token${tokenNum}`] = tokenAddress
-        const tokenNumPairLiquidities = await db.Swap.findAll(filter)
-        if (tokenNumPairLiquidities.length == 0)
-            continue
-        const amountIn = `amount${tokenNum}In`
-        const amountOut = `amount${tokenNum}Out`
-        let volumes = tokenNumPairLiquidities.map(
-            item => [item.get(amountIn), item.get(amountOut)]
-        )
-        volumes = volumes.map(x => parseFloat(x[0] != null ? x[0] : x[1] != null ? x[1] : 0.0))
-        totalVolume += volumes.reduce((a, b) => a + b, 0.0)
-    }
-    return totalVolume
+    const tokenPairLiquidities = await db.Swap.findAll({
+        'where': {
+            [Op.or]: [
+                {'token0': tokenAddress}, 
+                {'token1': tokenAddress}
+            ],
+            'datestamp': {
+                [Op.between] : [oneDayAgo, currentTime]
+            },
+        }
+    })
+    let volumes = tokenPairLiquidities.map(
+        item => item.get('token0') == tokenAddress ? 
+            [item.get('amount0In'), item.get('amount0Out')] 
+            : [item.get('amount1In'), item.get('amount1Out')]
+    )
+    volumes = volumes.map(x => parseFloat(x[0] != null ? x[0] : x[1] != null ? x[1] : 0.0))
+    return volumes.reduce((a, b) => a + b, 0.0)
 }
 
 

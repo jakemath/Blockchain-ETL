@@ -63,28 +63,30 @@ const getUSDCPrice = async usdcPairContract => {
     return (usdcReserves*1e12)/tokenReserves  // USDC has only 6 decimal places
 }
 
-// Fetches liquidity events across all pairs including the target token in the past 24 hours, then aggregates the individual 
-// volume measures as the total traded amount
-const getToken24HVolume = async(tokenAddress='0x3472a5a71965499acd81997a54bba8d852c6e53d', tokenSymbol=null) => {
-    let currentTime = time.unixTime()
-    let oneDayAgo = currentTime - (60*60*24)
-    currentTime = time.unixToDatetime(currentTime).toJSON()
-    oneDayAgo = time.unixToDatetime(oneDayAgo).toJSON()
-    console.log(`Calculating ${tokenSymbol || tokenAddress} volume from ${oneDayAgo} to ${currentTime}`)
-    const tokenPairLiquidities = await db.Swap.findAll({
+// Fetches token liquidity events across all pairs in window, then aggregates the individual volume measures as the total traded amount
+const getTokenVolume = async(tokenAddress='0x3472a5a71965499acd81997a54bba8d852c6e53d', fromDate=null, toDate=time.now()) => {
+    if (typeof toDate == 'string')  // Coerce fromDate and toDate to datetime objects. If fromDate is null, assume 24h window before toDate
+        toDate = new Date(toDate)
+    if (typeof fromDate == 'string')
+        fromDate = new Date(fromDate)
+    const toDateUnix = time.datetimeToUnix(toDate)
+    let fromDateUnix
+    if (fromDate == null)
+        fromDateUnix = time.unixToDatetime(toDateUnix - (60*60*24))
+    const tokenPairLiquidities = await db.Swap.findAll({  // Find all Liquidity events in window where one of the tokens is the target token
         'where': {
             [Op.or]: [
                 {'token0': tokenAddress}, 
                 {'token1': tokenAddress}
             ],
             'datestamp': {
-                [Op.between] : [oneDayAgo, currentTime]
+                [Op.between] : [fromDate.toJSON(), toDate.toJSON()]
             },
         }
     })
     let volumes = tokenPairLiquidities.map(
         item => item.get('token0') == tokenAddress ? 
-            [item.get('amount0In'), item.get('amount0Out')] 
+            [item.get('amount0In'), item.get('amount0Out')]
             : [item.get('amount1In'), item.get('amount1Out')]
     )
     volumes = volumes.map(x => parseFloat(x[0] != null ? x[0] : x[1] != null ? x[1] : 0.0))
@@ -97,5 +99,5 @@ module.exports = {
     getAllTokenPairAddresses,
     getUSDCPairAddress,
     getUSDCPrice,
-    getToken24HVolume
+    getTokenVolume
 }

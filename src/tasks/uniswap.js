@@ -96,9 +96,10 @@ task('uniswap', 'Track uniswap tokens')
                             console.log(`${pairSymbol} SWAP:`, swapPayload)
                             if (useDB) {
                                 await db.Swap.create(swapPayload)
+                                console.log(`Calculating ${targetTokenSymbol} volume from ${previousDate} to ${asOfDate}`)
                                 const label = `${targetTokenSymbol}:${time.now().toJSON()}`
                                 console.time(label)
-                                const volume = await uniswap.getToken24HVolume(targetTokenAddress, targetTokenSymbol)
+                                const volume = await uniswap.getTokenVolume(targetTokenAddress)
                                 console.timeEnd(label)
                                 console.log(`${targetTokenSymbol} 24-hour volume across all pairs: ${volume}`)
                             }

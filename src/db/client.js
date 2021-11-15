@@ -77,19 +77,19 @@ const Swap = sequelize.define(
         },
         'amount0In': {
             'type': Sequelize.DECIMAL,
-            'allowNull': false,
+            'allowNull': true,
         },
         'amount0Out': {
             'type': Sequelize.DECIMAL,
-            'allowNull': false,
+            'allowNull': true,
         },
         'amount1In': {
             'type': Sequelize.DECIMAL,
-            'allowNull': false,
+            'allowNull': true,
         },
         'amount1Out': {
             'type': Sequelize.DECIMAL,
-            'allowNull': false,
+            'allowNull': true,
         }
     }
 )

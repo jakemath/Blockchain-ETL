@@ -7,19 +7,18 @@ Purpose: Real-time Uniswap data streaming; fetches pair contract addresses for t
 
 const db = require('../db/client')
 const time = require('../utils/time')
-const uniswap = require('../utils/uniswap')
+const { UniswapClient } = require('../utils/uniswap')
 
 task('uniswap', 'Track uniswap tokens')
     .setAction(async() => {
         
-        console.log('Getting Uniswap token universe information...')
-        const [uniswapTokenSymbols, uniswapTokenDecimals] = await uniswap.getAllTokenSymbolsAndDecimals()  // Uniswap token universe (as many as one can get, at least)
+        const uniswap = await UniswapClient()
 
         const targetTokens = {  // Tokens to track
             '0x3472a5a71965499acd81997a54bba8d852c6e53d': 'BADGER',
-            '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': 'WETH',
-            '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 'USDC',
-            '0x514910771af9ca656af840dff83e8264ecf986ca': 'LINK'
+            // '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': 'WETH',
+            // '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 'USDC',
+            // '0x514910771af9ca656af840dff83e8264ecf986ca': 'LINK'
         }
 
         const decimals = {  // Exceptions to the 18-decimal standard (i.e. USDC)
@@ -47,11 +46,11 @@ task('uniswap', 'Track uniswap tokens')
             for (const pair of pairs) {
                 const pairAddress = pair['id']
                 const token0Address = pair['token0']['id']
-                const token0Factor = Math.pow(10, uniswapTokenDecimals[token0Address] || decimals[token0Address] || 18)
+                const token0Factor = Math.pow(10, uniswap.tokenDecimals[token0Address] || decimals[token0Address] || 18)
                 const token1Address = pair['token1']['id']
-                const token1Factor = Math.pow(10, uniswapTokenDecimals[token1Address] || decimals[token0Address] || 18)
-                const token0Symbol = `${uniswapTokenSymbols[token0Address] || targetTokens[token0Address] || pairAddress}`
-                const token1Symbol = `${uniswapTokenSymbols[token1Address] || targetTokens[token1Address] || pairAddress}`
+                const token1Factor = Math.pow(10, uniswap.tokenDecimals[token1Address] || decimals[token0Address] || 18)
+                const token0Symbol = `${uniswap.tokenSymbols[token0Address] || targetTokens[token0Address] || pairAddress}`
+                const token1Symbol = `${uniswap.tokenSymbols[token1Address] || targetTokens[token1Address] || pairAddress}`
                 const pairSymbol = `${token0Symbol}:${token1Symbol}`
                 console.log(`---> Monitoring pair ${pairSymbol}`)
                 provider.once('block', async() => {  // Listen for new block
@@ -96,7 +95,6 @@ task('uniswap', 'Track uniswap tokens')
                             console.log(`${pairSymbol} SWAP:`, swapPayload)
                             if (useDB) {
                                 await db.Swap.create(swapPayload)
-                                console.log(`Calculating ${targetTokenSymbol} volume from ${previousDate} to ${asOfDate}`)
                                 const label = `${targetTokenSymbol}:${time.now().toJSON()}`
                                 console.time(label)
                                 const volume = await uniswap.getTokenVolume(targetTokenAddress)

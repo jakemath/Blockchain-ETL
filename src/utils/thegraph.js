@@ -15,14 +15,7 @@ const SUBGRAPHS = {
                 'fields': [
                     'id',
                     'symbol',
-                    'name',
-                    'decimals',
-                    'tradeVolume',
-                    'tradeVolumeUSD',
-                    'untrackedVolumeUSD',
-                    'txCount',
-                    'totalLiquidity',
-                    'derivedETH'
+                    'decimals'
                 ]
             },
             'Pair': {

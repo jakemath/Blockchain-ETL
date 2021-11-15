@@ -1,157 +1,102 @@
 /*
 Author: Jake Mathai
-Purpose: Real-time Uniswap data streaming - fetches pair contract addresses for target tokens, and listens for event emissions from the contracts
-- When an event is observed, reads the balances stored on the pair contracts and writes the updated values to the DB
-- Pair reserve volume is derived from the absolute change in reserve levels between events
-- 24-hour trading volume for a token is calculated by summing the volume observations across all the token's pairs in the past 24 hours
+Purpose: Real-time Uniswap data streaming; fetches pair contract addresses for target tokens, and listens for event emissions from the contracts
+- Sync events are recorded as Liquidity items in the DB
+- Swap events are recorded as Swap items in the DB
 */
-
-const { Op } = require('sequelize')
-const IUniswapV2PairABI = require('@uniswap/v2-core/build/IUniswapV2Pair')
 
 const db = require('../db/client')
 const time = require('../utils/time')
-const thegraph = require('../utils/thegraph')
-
-const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
-
-const tokens = {
-    '0x3472a5a71965499acd81997a54bba8d852c6e53d': 'BADGER',
-    '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': 'WETH',
-    '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 'USDC',
-    '0x514910771af9ca656af840dff83e8264ecf986ca': 'LINK'
-}
-
-// Query subgraph for all pair contract addresses for the target token
-const fetchAllTokenPairAddresses = async targetTokenAddress => {
-    const results = await Promise.all([
-        thegraph.querySubgraph('UniswapV2', 'Pair', `first: 1000, where: {token0: "${targetTokenAddress}"}`), 
-        thegraph.querySubgraph('UniswapV2', 'Pair', `first: 1000, where: {token1: "${targetTokenAddress}"}`)
-    ])
-    return results[0].concat(results[1])
-}
-
-const fetchUSDCPairAddress = async targetTokenAddress => {
-    const token0Results = thegraph.querySubgraph('UniswapV2', 'Pair', `first: 1, where: {token0: ${targetTokenAddress}, token1: ${USDC_ADDRESS}`)
-    if (token0Results.length != 0)
-        return token0Results[0]['id']
-    const token1Results = thegraph.querySubgraph('UniswapV2', 'Pair', `first: 1, where: {token0: ${USDC_ADDRESS}, token1: ${targetTokenAddress}`)
-    if (token1Results.length != 0)
-        return token1Results[0]['id']
-    return null
-}
-
-const getUSDCPrice = async usdcPairContract => {
-    const reserves = await usdcPairContract.getReserves()
-    let usdcReserves, tokenReserves
-    if (await usdcPairContract.token0() == USDC_ADDRESS) {
-        usdcReserves = reserves[0]
-        tokenReserves = reserves[1]
-    }
-    else {
-        usdcReserves = reserves[1]
-        tokenReserves = reserves[0]
-    }
-    return (usdcReserves*1e12)/tokenReserves  // USDC has only 6 decimal places
-}
-
-// Fetches liquidity events across all pairs including the target token in the past 24 hours, then aggregates the individual 
-// volume measures as the total traded amount
-const getToken24HVolume = async(tokenAddress='0x3472a5a71965499acd81997a54bba8d852c6e53d') => {
-    let currentTime = time.unixTime()
-    let oneDayAgo = currentTime - (60*60*24)
-    currentTime = time.unixToDatetime(currentTime).toJSON()
-    oneDayAgo = time.unixToDatetime(oneDayAgo).toJSON()
-    console.log(`Calculating ${tokens[tokenAddress]} volume from ${oneDayAgo} to ${currentTime}`)
-    const tokenPairLiquidities = await db.PairLiquidity.findAll({
-        'where': {
-            [Op.or]: [
-                {'token0': tokenAddress}, 
-                {'token1': tokenAddress}
-            ],
-            'datestamp': {
-                [Op.between] : [oneDayAgo, currentTime]
-            },
-        }
-    })
-    let volumes = tokenPairLiquidities.map(
-        item => item.get('token0') == tokenAddress ? item.get('token0Volume') : item.get('token1Volume')
-    )
-    volumes = volumes.filter(x => x != null).map(parseFloat)
-    return volumes.reduce((a, b) => a + b, 0.0)
-}
-
-// Calculates token volumes as the change in reserve levels from the pair's previous liquidity event before writing to DB
-const createPairLiquidity = async liquidityPayload => {
-    const lastPairLiquidity = await db.PairLiquidity.findOne({
-        'where': { 
-            'address': liquidityPayload['address'] 
-        },
-        'order': [['datestamp', 'DESC']],
-    });
-    if (lastPairLiquidity == null) {
-        liquidityPayload['token0Volume'] = null
-        liquidityPayload['token1Volume'] = null
-    }
-    else {
-        liquidityPayload['token0Volume'] = Math.abs(liquidityPayload['reserve0'] - parseFloat(lastPairLiquidity['reserve0']))
-        liquidityPayload['token1Volume'] = Math.abs(liquidityPayload['reserve1'] - parseFloat(lastPairLiquidity['reserve1']))
-    }
-    await db.PairLiquidity.create(liquidityPayload)
-    return null
-}
+const uniswap = require('../utils/uniswap')
 
 task('uniswap', 'Track uniswap tokens')
     .setAction(async() => {
-        // Use WebSocket provider to efficiently listen for events without exceeding provider query provisions
+        
+        console.log('Getting Uniswap token universe information...')
+        const [uniswapTokenSymbols, uniswapTokenDecimals] = await uniswap.fetchAllTokenSymbolsAndDecimals()  // Uniswap token universe (as many as one can get, at least)
+
+        const targetTokens = {  // Tokens to track
+            '0x3472a5a71965499acd81997a54bba8d852c6e53d': 'BADGER',
+            '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': 'WETH',
+            '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 'USDC',
+            '0x514910771af9ca656af840dff83e8264ecf986ca': 'LINK'
+        }
+
+        const decimals = {  // Exceptions to the 18-decimal standard (i.e. USDC)
+            '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 12
+        }
+
+        const targetTokenAddresses = Object.keys(targetTokens)
+
         let provider = new ethers.providers.WebSocketProvider(process.env.WS_URL, 'mainnet')
-        let contracts = {}
-        // Sync events emit whenever the Mint, Burn, or Swap functions are called, indicating a change in liquidity/volume
         const syncEventTopic = ethers.utils.id('Sync(uint112,uint112)')
-        const tokenAddresses = Object.keys(tokens)
+        const syncEventInterface = new ethers.utils.Interface(  // Sync event parser
+            ['event Sync(uint112 reserve0, uint112 reserve1)']
+        )
+        const swapEventTopic = ethers.utils.id('Swap(address,uint256,uint256,uint256,uint256,address)')
+        const swapEventInterface = new ethers.utils.Interface(  // Swap event parser
+            ['event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)']
+        )
         const useDB = process.env['PROD'] == 'true'
 
-        const monitorTokenPairs = async tokenAddress => {
-            const symbol = tokens[tokenAddress]
+        const monitorTokenPairs = async targetTokenAddress => {
+            const symbol = targetTokens[targetTokenAddress]
             console.log(`Fetching ${symbol} pairs...`)
-            const pairs = await fetchAllTokenPairAddresses(tokenAddress)
+            const pairs = await uniswap.fetchAllTokenPairAddresses(targetTokenAddress)
             console.log(`${pairs.length} pairs for ${symbol} found`)
             for (const pair of pairs) {
                 const pairAddress = pair['id']
                 const token0Address = pair['token0']['id']
+                const token0Factor = Math.pow(10, uniswapTokenDecimals[token0Address] || decimals[token0Address] || 18)
                 const token1Address = pair['token1']['id']
-                console.log(`---> Monitoring ${symbol} pair ${pairAddress}`)
-                if (contracts[pairAddress] == null)
-                    contracts[pairAddress] = new ethers.Contract(
-                        pairAddress,
-                        IUniswapV2PairABI.abi,
-                        provider
-                    )
+                const token1Factor = Math.pow(10, uniswapTokenDecimals[token1Address] || decimals[token0Address] || 18)
+                const token0Symbol = `${uniswapTokenSymbols[token0Address] || targetTokens[token0Address] || pairAddress}`
+                const token1Symbol = `${uniswapTokenSymbols[token1Address] || targetTokens[token1Address] || pairAddress}`
+                const pairSymbol = `${token0Symbol}:${token1Symbol}`
+                console.log(`---> Monitoring pair ${pairSymbol}`)
                 provider.once('block', async() => {  // Listen for new block
-                    provider.on({  // Listen for sync events in new block
+                    provider.on({  // Listen for Sync events in new block
                         'address': pairAddress,
                         'topics': [syncEventTopic]
-                    }, async event => {  // Once Sync observed -> read reserves from contract and write to db
+                    }, async event => {  // Parse updated reserve levels from event and write to DB
                         try {
-                            const pairContract = contracts[pairAddress]
-                            const reserves = await pairContract.getReserves()
+                            const eventData = syncEventInterface.parseLog(event).args
                             const liquidityPayload = {
                                 'address': pairAddress,
+                                'datestamp': time.now().toJSON(),
                                 'token0': token0Address,
                                 'token1': token1Address,
-                                'reserve0': reserves[0]/1e18,
-                                'reserve1': reserves[1]/1e18,
-                                'datestamp': time.now().toJSON(),
-                                'blockTimestamp': reserves[2]
+                                'reserve0': eventData['reserve0']/token0Factor,
+                                'reserve1': eventData['reserve1']/token1Factor,
                             }
-                            console.log(`${symbol} SYNC:`, liquidityPayload)
+                            console.log(`${pairSymbol} SYNC:`, liquidityPayload)
+                            if (useDB)
+                                await db.Liquidity.create(liquidityPayload)
+                        }
+                        catch(e) {
+                            console.log(e)
+                        }
+                    })
+                    provider.on({  // Listen for Swap events in new block
+                        'address': pairAddress,
+                        'topics': [swapEventTopic]
+                    }, async event => {
+                        try {  // Parse Swap amounts from event and write to DB
+                            const eventData = swapEventInterface.parseLog(event).args
+                            const swapPayload = {
+                                'address': pairAddress,
+                                'datestamp': time.now().toJSON(),
+                                'token0': token0Address,
+                                'token1': token1Address,
+                                'amount0In': eventData['amount0In']/token0Factor,
+                                'amount0Out': eventData['amount0Out']/token0Factor,
+                                'amount1In': eventData['amount1In']/token1Factor,
+                                'amount1Out': eventData['amount1Out']/token1Factor
+                            }
+                            console.log(`${pairSymbol} SWAP:`, swapPayload)
                             if (useDB) {
-                                await createPairLiquidity(liquidityPayload)
-                                const label = `VolumeCalc:${symbol}:${time.now().toJSON()}`
-                                console.time(label)
-                                const token24HVolume = await getToken24HVolume(tokenAddress)
-                                console.timeEnd(label)
-                                console.log(`${symbol} 24-hour volume across all pairs: ${token24HVolume}`)
+                                await db.Swap.create(swapPayload)
+                                await uniswap.getToken24HVolume(targetTokenAddress)
                             }
                         }
                         catch(e) {
@@ -162,8 +107,8 @@ task('uniswap', 'Track uniswap tokens')
             }
         }
 
-        for (const tokenAddress of tokenAddresses) 
-            monitorTokenPairs(tokenAddress)
+        for (const targetTokenAddress of targetTokenAddresses) 
+            monitorTokenPairs(targetTokenAddress)
         while (true)
             await time.sleep(3600)  // Keep listening processes alive
     })

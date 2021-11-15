@@ -37,5 +37,5 @@ services:
     environment:
       - TASK=uniswap  # Specify task name in environment, which maps to specific configurations in src/conf.json
       - PROD=true  # Production flag to specify whether to write to DB along with any other prod-specific settings
-      - POSTGRES_USER=postgres  # DB credentials, could be accessed via a secrets manager service at runtime
+      - POSTGRES_USER=postgres  # DB credentials, can be accessed via a secrets manager service at runtime
       - POSTGRES_PASSWORD=postgres

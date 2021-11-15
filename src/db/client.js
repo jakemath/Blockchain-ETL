@@ -20,11 +20,9 @@ const sequelize = new Sequelize(
     }
 )
 
-// Time series of a pair contract liquidity events
-// - Tracks the running reserve levels for the pair contract
-// - Volume for each token calculated as the absolute change in reserve levels from the previous liquidity event
-const PairLiquidity = sequelize.define(
-    'PairLiquidity',
+// Time series of a pair contract's liquidity events. Tracks the running reserve levels for the pair contract
+const Liquidity = sequelize.define(
+    'Liquidity',
     {
         'address': {
             'type': Sequelize.STRING,
@@ -51,23 +49,53 @@ const PairLiquidity = sequelize.define(
         'reserve1': {
             'type': Sequelize.DECIMAL,
             'allowNull': false
+        }
+    }
+)
+
+// Time series of a pair contract's swap events. Used to calculate 24-hour volume
+const Swap = sequelize.define(
+    'Swap',
+    {
+        'address': {
+            'type': Sequelize.STRING,
+            'allowNull': false,
+            'primaryKey': true
         },
-        'token0Volume': {
+        'datestamp': {
+            'type': Sequelize.DATE,
+            'allowNull': false,
+            'primaryKey': true
+        },
+        'token0': {
+            'type': Sequelize.STRING,
+            'allowNull': false,
+        },
+        'token1': {
+            'type': Sequelize.STRING,
+            'allowNull': false,
+        },
+        'amount0In': {
             'type': Sequelize.DECIMAL,
-            'allowNull': true
+            'allowNull': false,
         },
-        'token1Volume': {
+        'amount0Out': {
             'type': Sequelize.DECIMAL,
-            'allowNull': true
+            'allowNull': false,
         },
-        'blockTimestamp': {
-            'type': Sequelize.INTEGER,
-            'allowNull': false
+        'amount1In': {
+            'type': Sequelize.DECIMAL,
+            'allowNull': false,
+        },
+        'amount1Out': {
+            'type': Sequelize.DECIMAL,
+            'allowNull': false,
         }
     }
 )
 
 module.exports = {
     sequelize,
-    PairLiquidity,
+    Liquidity,
+    Swap
 }

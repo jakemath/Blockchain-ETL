@@ -13,7 +13,7 @@ task('uniswap', 'Track uniswap tokens')
     .setAction(async() => {
         
         console.log('Getting Uniswap token universe information...')
-        const [uniswapTokenSymbols, uniswapTokenDecimals] = await uniswap.fetchAllTokenSymbolsAndDecimals()  // Uniswap token universe (as many as one can get, at least)
+        const [uniswapTokenSymbols, uniswapTokenDecimals] = await uniswap.getAllTokenSymbolsAndDecimals()  // Uniswap token universe (as many as one can get, at least)
 
         const targetTokens = {  // Tokens to track
             '0x3472a5a71965499acd81997a54bba8d852c6e53d': 'BADGER',
@@ -40,10 +40,10 @@ task('uniswap', 'Track uniswap tokens')
         const useDB = process.env['PROD'] == 'true'
 
         const monitorTokenPairs = async targetTokenAddress => {
-            const symbol = targetTokens[targetTokenAddress]
-            console.log(`Fetching ${symbol} pairs...`)
-            const pairs = await uniswap.fetchAllTokenPairAddresses(targetTokenAddress)
-            console.log(`${pairs.length} pairs for ${symbol} found`)
+            const targetTokenSymbol = targetTokens[targetTokenAddress]
+            console.log(`Fetching ${targetTokenSymbol} pairs...`)
+            const pairs = await uniswap.getAllTokenPairAddresses(targetTokenAddress)
+            console.log(`${pairs.length} pairs for ${targetTokenSymbol} found`)
             for (const pair of pairs) {
                 const pairAddress = pair['id']
                 const token0Address = pair['token0']['id']
@@ -96,7 +96,11 @@ task('uniswap', 'Track uniswap tokens')
                             console.log(`${pairSymbol} SWAP:`, swapPayload)
                             if (useDB) {
                                 await db.Swap.create(swapPayload)
-                                await uniswap.getToken24HVolume(targetTokenAddress)
+                                const label = `${targetTokenSymbol}:${time.now().toJSON()}`
+                                console.time(label)
+                                const volume = await uniswap.getToken24HVolume(targetTokenAddress, targetTokenSymbol)
+                                console.timeEnd(label)
+                                console.log(`${targetTokenSymbol} 24-hour volume across all pairs: ${volume}`)
                             }
                         }
                         catch(e) {

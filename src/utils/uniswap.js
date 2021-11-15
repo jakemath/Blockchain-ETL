@@ -11,7 +11,7 @@ const thegraph = require('../utils/thegraph')
 
 const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
 
-const fetchAllTokenSymbolsAndDecimals = async() => {
+const getAllTokenSymbolsAndDecimals = async() => {
     let tokenSymbols = {}  // Map address to symbol
     let tokenDecimals = {} // Map address to decimals
     let queries = []
@@ -29,7 +29,7 @@ const fetchAllTokenSymbolsAndDecimals = async() => {
 }
 
 // Query subgraph for all pair contract addresses for the target token
-const fetchAllTokenPairAddresses = async targetTokenAddress => {
+const getAllTokenPairAddresses = async targetTokenAddress => {
     let queries = []
     for (let skip = 0; skip < 6000; skip += 1000)
         queries.push(thegraph.querySubgraph('UniswapV2', 'Pair', `first: 1000, skip: ${skip}, where: {token0: "${targetTokenAddress}"}`)) 
@@ -39,7 +39,7 @@ const fetchAllTokenPairAddresses = async targetTokenAddress => {
     return [].concat.apply([], results);
 }
 
-const fetchUSDCPairAddress = async targetTokenAddress => {
+const getUSDCPairAddress = async targetTokenAddress => {
     const token0Results = thegraph.querySubgraph('UniswapV2', 'Pair', `first: 1, where: {token0: ${targetTokenAddress}, token1: ${USDC_ADDRESS}`)
     if (token0Results.length != 0)
         return token0Results[0]['id']
@@ -65,37 +65,40 @@ const getUSDCPrice = async usdcPairContract => {
 
 // Fetches liquidity events across all pairs including the target token in the past 24 hours, then aggregates the individual 
 // volume measures as the total traded amount
-const getToken24HVolume = async(tokenAddress='0x3472a5a71965499acd81997a54bba8d852c6e53d') => {
+const getToken24HVolume = async(tokenAddress='0x3472a5a71965499acd81997a54bba8d852c6e53d', tokenSymbol=null) => {
     let currentTime = time.unixTime()
     let oneDayAgo = currentTime - (60*60*24)
     currentTime = time.unixToDatetime(currentTime).toJSON()
     oneDayAgo = time.unixToDatetime(oneDayAgo).toJSON()
-    console.log(`Calculating ${tokens[tokenAddress]} volume from ${oneDayAgo} to ${currentTime}`)
-    const tokenPairLiquidities = await db.Swap.findAll({
-        'where': {
-            [Op.or]: [
-                {'token0': tokenAddress}, 
-                {'token1': tokenAddress}
-            ],
-            'datestamp': {
-                [Op.between] : [oneDayAgo, currentTime]
-            },
-        }
-    })
-    let volumes = tokenPairLiquidities.map(
-        item => item.get('token0') == tokenAddress ? 
-            [item.get('amount0In'), item.get('amount0Out')] 
-            : [item.get('amount1In'), item.get('amount1Out')]
-    )
-    volumes = volumes.map(x => parseFloat(x[0] != null ? x[0] : x[1] != null ? x[1] : 0.0))
-    return volumes.reduce((a, b) => a + b, 0.0)
+    console.log(`Calculating ${tokenSymbol || tokenAddress} volume from ${oneDayAgo} to ${currentTime}`)
+    let totalVolume = 0
+    let filter = {
+        'datestamp': {
+            [Op.between] : [oneDayAgo, currentTime]
+        },
+    }
+    for (tokenNum in [0, 1]) {
+        filter['where'] = {}
+        filter['where'][`token${tokenNum}`] = tokenAddress
+        const tokenNumPairLiquidities = await db.Swap.findAll(filter)
+        if (tokenNumPairLiquidities.length == 0)
+            continue
+        const amountIn = `amount${tokenNum}In`
+        const amountOut = `amount${tokenNum}Out`
+        let volumes = tokenNumPairLiquidities.map(
+            item => [item.get(amountIn), item.get(amountOut)]
+        )
+        volumes = volumes.map(x => parseFloat(x[0] != null ? x[0] : x[1] != null ? x[1] : 0.0))
+        totalVolume += volumes.reduce((a, b) => a + b, 0.0)
+    }
+    return totalVolume
 }
 
 
 module.exports = {
-    fetchAllTokenSymbolsAndDecimals,
-    fetchAllTokenPairAddresses,
-    fetchUSDCPairAddress,
+    getAllTokenSymbolsAndDecimals,
+    getAllTokenPairAddresses,
+    getUSDCPairAddress,
     getUSDCPrice,
     getToken24HVolume
 }

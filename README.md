@@ -46,15 +46,15 @@ node dispatch.js
 
 This framework is designed to concurrently stream many data feeds on the same host. In production mode, each distinct data feed is deployed in its own docker container with the `TASK` environment variable set to the name of the respective task. The task name maps to configurations specified in `src/conf.json`, which can be customized to one's needs.
 
-The base image for the tasks containers is `node.js`, and the `package.json` further specifies `hardhat` and `ethers.js` as dependencies. These enable one to interact with blockchain networks at a low levels if necessary - the `uniswap-ethers` task is an example of such a use case, in which events are directly streamed from pair contracts.
+The base image for the task containers is `node.js`, and the `package.json` further specifies `hardhat` and `ethers.js` as dependencies. These libraries enable one to interact with blockchain networks at lower levels if necessary - the `stream-pairs` task is an example of such a use case, in which events are directly streamed from pair contracts.
 
-The locally-run architecture leveraging `docker-compose` is illustrated by the below diagram.
+To run multiple tasks at once, `docker-compose` is used to orchestrate the deployment. The diagram below illustrates this arrangement.
 
 ### Local Architecture
 
 ![Design](design.png)
 
-This architecture can support many different data feeds on the same machine, effectively maximizing server resources. A production-grade data platform may seek to decouple these components into a distributed system, like the below diagram illustrates.
+By supporting many different data feeds on the same machine, this architecture effectively maximizing server resources. A true production-grade data platform, however, may seek to decouple the various components into a distributed system, like the diagram below illustrates.
 
 ### Distributed Architecture
 

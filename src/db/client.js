@@ -108,18 +108,18 @@ const TokenObservation = sequelize.define(
             'allowNull': false,
             'primaryKey': true
         },
-        'derivedETH': {
+        'totalTokenVolume': {
             'type': Sequelize.DECIMAL,
             'allowNull': false
         },
-        'totalVolumeUSD': {
+        'totalTokenLiquidity': {
             'type': Sequelize.DECIMAL,
             'allowNull': false
         },
-        'liquidityUSD': {
+        'price': {
             'type': Sequelize.DECIMAL,
             'allowNull': false
-        }
+        },
     }
 )
 

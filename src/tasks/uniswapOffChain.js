@@ -9,6 +9,7 @@ const db = require('../db/client')
 const time = require('../utils/time')
 const { UniswapClient } = require('../utils/uniswap')
 const { TheGraphClient } = require('../utils/thegraph')
+const { parse } = require('graphql')
 
 const trackTokens = async() => {
     const uniswap = await UniswapClient()
@@ -26,27 +27,29 @@ const trackTokens = async() => {
     const monitorToken = async targetTokenAddress => {
         const targetTokenSymbol = targetTokens[targetTokenAddress]
         console.log(`Monitoring ${targetTokenSymbol}...`)
-        // Query the Token entity and poll for the updated record every second
+        // Query the Token entity and poll for updated records every second
         let tokenObservationMonitor = thegraph.watchQuery('UniswapV2', 'Token', `first: 1, where: {id: "${targetTokenAddress}"}`, 1000)
         tokenObservationMonitor.subscribe({
-            'next': async({data}) => {  // New values in the entity -> aggregate volume, convert liquidity to USD and write to DB
+            'next': async({data}) => {  // On new entity -> calculate price and write to DB
                 const updatedRecord = data['tokens'][0]
-                const tokenPayload = {
+                let tokenPayload = {
                     'address': targetTokenAddress,
                     'datestamp': time.now().toJSON(),
-                    'derivedETH': parseFloat(updatedRecord['derivedETH']),
-                    'totalVolumeUSD': parseFloat(updatedRecord['tradeVolumeUSD']) + parseFloat(updatedRecord['untrackedVolumeUSD']),
+                    'totalTokenVolume': parseFloat(updatedRecord['tradeVolume']),
+                    'totalTokenLiquidity': parseFloat(updatedRecord['totalLiquidity'])
                 }
                 const ethPrice = await uniswap.getETHPrice()
-                tokenPayload['liquidityUSD'] = parseFloat(updatedRecord['totalLiquidity']) * tokenPayload['derivedETH'] * ethPrice // Convert to USD
+                tokenPayload['price'] = parseFloat(updatedRecord['derivedETH']) * ethPrice
                 console.log(`${targetTokenSymbol} TOKEN OBSERVATION:`, tokenPayload)
                 if (useDB) {
                     await db.TokenObservation.create(tokenPayload)
                     const label = `${targetTokenSymbol}:${time.now().toJSON()}`
                     console.time(label)
-                    const volume = await uniswap.getTokenVolume(targetTokenAddress)
+                    const [liquidity, volume] = await uniswap.getTokenLiquidityAndVolume(targetTokenAddress)
                     console.timeEnd(label)
-                    console.log(`${targetTokenSymbol} 24-hour volume: $${volume.toLocaleString()}`)
+                    console.log(`${targetTokenSymbol} 24-hour stats`)
+                    console.log(`---> Liquidity: $${liquidity.toLocaleString()}`)
+                    console.log(`---> Volume: $${volume.toLocaleString()}`)
                 }
                 return null
             }

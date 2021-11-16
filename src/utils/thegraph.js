@@ -37,9 +37,8 @@ const TheGraphClient = () => {
                                 id
                                 symbol
                                 decimals
+                                tradeVolume
                                 totalLiquidity
-                                tradeVolumeUSD
-                                untrackedVolumeUSD
                                 derivedETH
                             }
                         }

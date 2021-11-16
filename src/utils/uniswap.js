@@ -8,6 +8,7 @@ const { Op } = require('sequelize')
 const db = require('../db/client')
 const time = require('../utils/time')
 const { TheGraphClient } = require('../utils/thegraph')
+const { parse } = require('graphql')
 
 const UniswapClient = async() => {
     const thegraph = TheGraphClient()
@@ -43,10 +44,9 @@ const UniswapClient = async() => {
         return [].concat.apply([], results);
     }
 
-    const getETHPrice = async() => (await thegraph.querySubgraph('UniswapV2', 'Bundle', 'where: {id: "1"}'))[0]['ethPrice']
+    const getETHPrice = async() => parseFloat((await thegraph.querySubgraph('UniswapV2', 'Bundle', 'where: {id: "1"}'))[0]['ethPrice'])
 
-    // Fetch token observations in window and take difference in totalVolumeUSD between the latest record and the earliest record
-    const getTokenVolume = async(tokenAddress, fromDate=null, toDate=time.now()) => {
+    const getObservationsInWindow = async(tokenAddress, fromDate=null, toDate=time.now()) => {
         if (typeof toDate == 'string')  // Coerce fromDate and toDate to datetime objects. If fromDate is null, assume 24h window before toDate
             toDate = new Date(toDate)
         if (typeof fromDate == 'string')
@@ -54,17 +54,54 @@ const UniswapClient = async() => {
         const toDateUnix = time.datetimeToUnix(toDate)
         if (fromDate == null)
             fromDate = time.unixToDatetime(toDateUnix - (60*60*24))
-        const observations = await db.TokenObservation.findAll({  // Find observations in window
+        return await db.TokenObservation.findAll({  // Find observations in window
             'where': {
                 'address': tokenAddress,
                 'datestamp': {
-                    [Op.between] : [fromDate.toJSON(), toDate.toJSON()]
+                    [Op.between] : [fromDate, toDate]
                 }
-            }
+            },
+            'raw': true
         })
-        if (observations != null && observations.length >= 2)
-            return parseFloat(observations[observations.length - 1].totalVolumeUSD) - parseFloat(observations[0].totalVolumeUSD)
-        return 0
+    }
+
+    const calculateTokenVolume = observations => {
+        if (observations == null || observations.length < 2)
+            return 0
+        const prices = observations.map(observation => parseFloat(observation['price']))
+        const meanPrice = prices.reduce((a, b) => a + b, 0.0) / observations.length
+        const latestTokenVolume = parseFloat(observations[observations.length - 1]['totalTokenVolume'])
+        const earliestTokenVolume = parseFloat(observations[0]['totalTokenVolume'])
+        return (latestTokenVolume - earliestTokenVolume) * meanPrice
+    }
+
+    // Fetch token observations in window, take difference in totalTokenVolume between the latest record and the earliest record,
+    // and multiply by the average price over the period
+    const getTokenVolume = async(tokenAddress, fromDate=null, toDate=time.now()) => {
+        const observations = await getObservationsInWindow(tokenAddress, fromDate, toDate)
+        return calculateTokenVolume(observations)
+    }
+
+    const calculateTokenLiquidity = observations => {
+        if (observations == null || observations.length < 2)
+            return null
+        const prices = observations.map(observation => parseFloat(observation['price']))
+        const tokenLiquidities = observations.map(observation => parseFloat(observation['totalTokenLiquidity']))
+        const meanPrice = prices.reduce((a, b) => a + b, 0.0) / observations.length
+        const meanTokenLiquidity = tokenLiquidities.reduce((a, b) => a + b, 0.0) / observations.length
+        return meanTokenLiquidity * meanPrice
+    }
+
+    // Fetch token observations in window, take difference in totalTokenVolume between the latest record and the earliest record,
+    // and multiply by the average price over the period
+    const getTokenLiquidity = async(tokenAddress, fromDate=null, toDate=time.now()) => {
+        const observations = await getObservationsInWindow(tokenAddress, fromDate, toDate)
+        return calculateTokenLiquidity(observations)
+    }
+
+    const getTokenLiquidityAndVolume = async(tokenAddress, fromDate=null, toDate=time.now()) => {
+        const observations = await getObservationsInWindow(tokenAddress, fromDate, toDate)
+        return [calculateTokenLiquidity(observations), calculateTokenVolume(observations)]
     }
 
     return {
@@ -72,7 +109,9 @@ const UniswapClient = async() => {
         tokenDecimals,
         getAllTokenPairAddresses,
         getETHPrice,
-        getTokenVolume
+        getTokenVolume,
+        getTokenLiquidity,
+        getTokenLiquidityAndVolume
     }
 }
 

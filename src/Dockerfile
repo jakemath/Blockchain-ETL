@@ -1,6 +1,5 @@
 # Author: Jake Mathai
-# Purpose: Node.js-based dockerfile for data streaming tasks
-
+# Purpose: Node.js-based dockerfile for task containers
 FROM node:16.8
 WORKDIR /src
 COPY . ./

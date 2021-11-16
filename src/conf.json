@@ -1,12 +1,12 @@
 {
     "track-tokens": {
-        "MODULE": "tasks/uniswapOffChain",
-        "FUNCTION": "trackTokens",
-        "ON_CHAIN": "false"
+        "module": "tasks/uniswapOffChain",
+        "function": "trackTokens",
+        "onChain": "false"
     },
     "stream-pairs": {
-        "MODULE": "tasks/uniswapOnChain",
-        "FUNCTION": "streamPairs",
-        "ON_CHAIN": "true"
+        "module": "tasks/uniswapOnChain",
+        "function": "streamPairs",
+        "onChain": "true"
     }
 }

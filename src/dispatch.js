@@ -1,7 +1,6 @@
 /*
 Author: Jake Mathai
-Purpose: Entrypoint script for running tasks. 
-Reads the TASK environment variable, which maps to task-specific configurations defined in conf.json
+Purpose: Entrypoint script for running tasks. Reads the TASK environment variable mapping to configurations in conf.json
 */
 
 const { migrate } = require('./db/migrations')

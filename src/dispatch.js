@@ -12,7 +12,7 @@ const dispatch = async() => {
     if (process.env['PROD'] == 'true')  // If prod --> migrate DB
         await migrate()
     const taskFunction = configData['FUNCTION']
-    if (configData['ON_CHAIN']) {
+    if (configData['ON_CHAIN'] == 'true') {
         const hre = require('hardhat')
         await hre.run(taskFunction)
     }

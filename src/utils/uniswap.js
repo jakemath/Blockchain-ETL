@@ -7,17 +7,16 @@ const { Op } = require('sequelize')
 
 const db = require('../db/client')
 const time = require('../utils/time')
-const thegraph = require('../utils/thegraph')
+const { TheGraphClient } = require('../utils/thegraph')
 
 const UniswapClient = async() => {
-
-    console.log('Fetching Uniswap token info...')
-
+    const thegraph = TheGraphClient()
+    
     const getAllTokenSymbolsAndDecimals = async() => {
         let tokenSymbols = {}  // Map address to symbol
         let tokenDecimals = {} // Map address to decimals
         let queries = []
-        for (let skip = 0; skip <= 6000; skip += 1000)  // Paginated token query. Graph API limits skip to 6000 unfortunately
+        for (let skip = 0; skip < 6000; skip += 1000)  // Paginated token query. Graph API limits skip to 6000 unfortunately
             queries.push(thegraph.querySubgraph('UniswapV2', 'Token', `first: 1000, skip: ${skip}, orderBy: "tradeVolumeUSD", orderDirection: desc`)) 
         let results = await Promise.all(queries)
         results.forEach(resultSet => {
@@ -30,6 +29,7 @@ const UniswapClient = async() => {
         return [tokenSymbols, tokenDecimals]
     }
 
+    console.log('Fetching Uniswap token info...')
     const [tokenSymbols, tokenDecimals] = await getAllTokenSymbolsAndDecimals()
 
     // Query subgraph for all pair contract addresses for the target token
@@ -43,33 +43,9 @@ const UniswapClient = async() => {
         return [].concat.apply([], results);
     }
 
-    const USDC_ADDRESS = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+    const getETHPrice = async() => (await thegraph.querySubgraph('UniswapV2', 'Bundle', 'where: {id: "1"}'))[0]['ethPrice']
 
-    const getUSDCPairAddress = async targetTokenAddress => {
-        const token0Results = thegraph.querySubgraph('UniswapV2', 'Pair', `first: 1, where: {token0: ${targetTokenAddress}, token1: ${USDC_ADDRESS}`)
-        if (token0Results.length != 0)
-            return token0Results[0]['id']
-        const token1Results = thegraph.querySubgraph('UniswapV2', 'Pair', `first: 1, where: {token0: ${USDC_ADDRESS}, token1: ${targetTokenAddress}`)
-        if (token1Results.length != 0)
-            return token1Results[0]['id']
-        return null
-    }
-
-    const getUSDCPrice = async usdcPairContract => {
-        const reserves = await usdcPairContract.getReserves()
-        let usdcReserves, tokenReserves
-        if (await usdcPairContract.token0() == USDC_ADDRESS) {
-            usdcReserves = reserves[0]
-            tokenReserves = reserves[1]
-        }
-        else {
-            usdcReserves = reserves[1]
-            tokenReserves = reserves[0]
-        }
-        return (usdcReserves*1e12)/tokenReserves  // USDC has only 6 decimal places
-    }
-
-    // Fetches token liquidity events across all pairs in window, then aggregates the individual volume measures as the total traded amount
+    // Fetch token observations in window and take difference in totalVolumeUSD between the latest record and the earliest record
     const getTokenVolume = async(tokenAddress, fromDate=null, toDate=time.now()) => {
         if (typeof toDate == 'string')  // Coerce fromDate and toDate to datetime objects. If fromDate is null, assume 24h window before toDate
             toDate = new Date(toDate)
@@ -78,32 +54,24 @@ const UniswapClient = async() => {
         const toDateUnix = time.datetimeToUnix(toDate)
         if (fromDate == null)
             fromDate = time.unixToDatetime(toDateUnix - (60*60*24))
-        const tokenPairLiquidities = await db.Swap.findAll({  // Find all Liquidity events in window where one of the tokens is the target token
+        const observations = await db.TokenObservation.findAll({  // Find observations in window
             'where': {
-                [Op.or]: [
-                    {'token0': tokenAddress}, 
-                    {'token1': tokenAddress}
-                ],
+                'address': tokenAddress,
                 'datestamp': {
                     [Op.between] : [fromDate.toJSON(), toDate.toJSON()]
-                },
+                }
             }
         })
-        let volumes = tokenPairLiquidities.map(
-            item => item.get('token0') == tokenAddress ? 
-                [item.get('amount0In'), item.get('amount0Out')]
-                : [item.get('amount1In'), item.get('amount1Out')]
-        )
-        volumes = volumes.map(x => parseFloat(x[0] != null ? x[0] : x[1] != null ? x[1] : 0.0))
-        return volumes.reduce((a, b) => a + b, 0.0)
+        if (observations != null && observations.length >= 2)
+            return parseFloat(observations[observations.length - 1].totalVolumeUSD) - parseFloat(observations[0].totalVolumeUSD)
+        return 0
     }
 
     return {
         tokenSymbols,
         tokenDecimals,
         getAllTokenPairAddresses,
-        getUSDCPairAddress,
-        getUSDCPrice,
+        getETHPrice,
         getTokenVolume
     }
 }
@@ -116,19 +84,11 @@ module.exports = {
 const { UniswapClient } = require('./utils/uniswap')
 const BADGER = '0x3472a5a71965499acd81997a54bba8d852c6e53d'
 const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
-let uniswap
-UniswapClient().then(client => {
-    uniswap = client
-    uniswap.getTokenVolume(BADGER).then(vol => {
-        console.log(vol)
-        uniswap.getTokenVolume(BADGER, '2021-11-16').then(vol => {
-            console.log(vol)
-            uniswap.getTokenVolume(WETH).then(vol => {
-                console.log(vol)
-            })
-        })
-    })
-    uniswap.getTokenVolume(BADGER, '2021-11-16').then(vol => console.log(vol))
-    uniswap.getTokenVolume(WETH).then(vol => console.log(vol))
-})
+const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+fetchVolume = async() => {
+    uniswap = await UniswapClient()
+    console.log('WETH:', '$' + (await uniswap.getTokenVolumeGraph(WETH)).toLocaleString())
+    console.log('BADGER:', '$' + (await uniswap.getTokenVolumeGraph(BADGER)).toLocaleString())
+    console.log('USDC:', '$' + (await uniswap.getTokenVolumeGraph(USDC)).toLocaleString())
+}
 */

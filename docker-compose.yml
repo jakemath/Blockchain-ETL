@@ -3,7 +3,9 @@
 
 version: '3'
 volumes:
-  uniswap-db:
+  uniswap-db: null
+  track-tokens-node-modules: null
+  stream-pairs-node-modules: null
 services:
   db:  # DB container
     image: postgres
@@ -23,10 +25,10 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-  uniswap:  # Data streaming container - define a container for each distinct data process (coinbase, binance, kraken)
-    restart: always
-    container_name: uniswap
-    hostname: uniswap
+  # Task containers - define a container for each distinct data process (coinbase, aave, uniswap, etc)
+  track-tokens:  # Uniswap off-chain data streaming task
+    restart: unless-stopped
+    container_name: track-tokens
     build:
       context: ./src
       dockerfile: Dockerfile
@@ -35,7 +37,26 @@ services:
       db:
         condition: service_healthy  # Wait for db to be ready to accept connectionsbefore executing
     environment:
-      - TASK=uniswap  # Specify task name in environment, which maps to specific configurations in src/conf.json
+      - TASK=track-tokens  # Specify task name in environment, which maps to specific configurations in src/conf.json
       - PROD=true  # Production flag to specify whether to write to DB along with any other prod-specific settings
       - POSTGRES_USER=postgres  # DB credentials, can be accessed via a secrets manager service at runtime
       - POSTGRES_PASSWORD=postgres
+    volumes:
+      - track-tokens-node-modules:/src/node_modules/
+  stream-pairs:  # On-chain data streaming container, for demonstration purposes
+    restart: unless-stopped
+    container_name: stream-pairs
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    command: ['node', 'dispatch.js']
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - TASK=stream-pairs
+      - PROD=true
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - stream-pairs-node-modules:/src/node_modules/

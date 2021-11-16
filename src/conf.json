@@ -1,7 +1,12 @@
 {
-    "uniswap": {
-        "MODULE": "tasks/uniswap",
-        "FUNCTION": "uniswap",
+    "track-tokens": {
+        "MODULE": "tasks/uniswapOffChain",
+        "FUNCTION": "trackTokens",
+        "ON_CHAIN": "false"
+    },
+    "stream-pairs": {
+        "MODULE": "tasks/uniswapOnChain",
+        "FUNCTION": "streamPairs",
         "ON_CHAIN": "true"
     }
 }

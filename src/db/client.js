@@ -20,7 +20,7 @@ const sequelize = new Sequelize(
     }
 )
 
-// Time series of a pair contract's liquidity events. Tracks the running reserve levels for the pair contract
+// Time series of a pair contract's liquidity events. Tracks the running reserve levels
 const Liquidity = sequelize.define(
     'Liquidity',
     {
@@ -53,7 +53,7 @@ const Liquidity = sequelize.define(
     }
 )
 
-// Time series of a pair contract's swap events. Used to calculate 24-hour volume
+// Time series of a pair contract's swap events
 const Swap = sequelize.define(
     'Swap',
     {
@@ -94,8 +94,38 @@ const Swap = sequelize.define(
     }
 )
 
+// Time series of observed token entities published on Uniswap subgraph
+const TokenObservation = sequelize.define(
+    'TokenObservation',
+    {
+        'address': {
+            'type': Sequelize.STRING,
+            'allowNull': false,
+            'primaryKey': true
+        },
+        'datestamp': {
+            'type': Sequelize.DATE,
+            'allowNull': false,
+            'primaryKey': true
+        },
+        'derivedETH': {
+            'type': Sequelize.DECIMAL,
+            'allowNull': false
+        },
+        'totalVolumeUSD': {
+            'type': Sequelize.DECIMAL,
+            'allowNull': false
+        },
+        'liquidityUSD': {
+            'type': Sequelize.DECIMAL,
+            'allowNull': false
+        }
+    }
+)
+
 module.exports = {
     sequelize,
     Liquidity,
-    Swap
+    Swap,
+    TokenObservation,
 }

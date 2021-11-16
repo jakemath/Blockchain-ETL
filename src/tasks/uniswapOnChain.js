@@ -1,6 +1,6 @@
 /*
 Author: Jake Mathai
-Purpose: Real-time Uniswap data streaming; fetches pair contract addresses for target tokens, and listens for event emissions from the contracts
+Purpose: Uniswap on-chain tasks. Example task streams Sync and Swap events from target token pair contracts in real-time
 - Sync events are recorded as Liquidity items in the DB
 - Swap events are recorded as Swap items in the DB
 */
@@ -9,19 +9,17 @@ const db = require('../db/client')
 const time = require('../utils/time')
 const { UniswapClient } = require('../utils/uniswap')
 
-task('uniswap', 'Track uniswap tokens')
+task('streamPairs', 'Stream Uniswap pair events in real-time')
     .setAction(async() => {
-        
         const uniswap = await UniswapClient()
-
+        
         const targetTokens = {  // Tokens to track
             '0x3472a5a71965499acd81997a54bba8d852c6e53d': 'BADGER',
-            // '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': 'WETH',
-            // '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 'USDC',
-            // '0x514910771af9ca656af840dff83e8264ecf986ca': 'LINK'
+            '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 'USDC',
+            '0x514910771af9ca656af840dff83e8264ecf986ca': 'LINK'
         }
 
-        const decimals = {  // Exceptions to the 18-decimal standard (i.e. USDC)
+        const decimals = {  // Exceptions to the standard 18-decimals (i.e. USDC)
             '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 12
         }
 
@@ -42,7 +40,7 @@ task('uniswap', 'Track uniswap tokens')
             const targetTokenSymbol = targetTokens[targetTokenAddress]
             console.log(`Fetching ${targetTokenSymbol} pairs...`)
             const pairs = await uniswap.getAllTokenPairAddresses(targetTokenAddress)
-            console.log(`${pairs.length} pairs for ${targetTokenSymbol} found`)
+            console.log(`${pairs.length} ${targetTokenSymbol} pairs found`)
             for (const pair of pairs) {
                 const pairAddress = pair['id']
                 const token0Address = pair['token0']['id']
@@ -93,14 +91,8 @@ task('uniswap', 'Track uniswap tokens')
                                 'amount1Out': eventData['amount1Out']/token1Factor
                             }
                             console.log(`${pairSymbol} SWAP:`, swapPayload)
-                            if (useDB) {
+                            if (useDB)
                                 await db.Swap.create(swapPayload)
-                                const label = `${targetTokenSymbol}:${time.now().toJSON()}`
-                                console.time(label)
-                                const volume = await uniswap.getTokenVolume(targetTokenAddress)
-                                console.timeEnd(label)
-                                console.log(`${targetTokenSymbol} 24-hour volume across all pairs: ${volume}`)
-                            }
                         }
                         catch(e) {
                             console.log(e)

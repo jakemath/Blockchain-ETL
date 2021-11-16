@@ -2,14 +2,16 @@
 Crypto data ETL framework for streaming and storing data from on and off-chain sources using Hardhat, Ethers.js & PostgreSQL. Includes an implementation for streaming Uniswap V2 data from both the subgraph and pair contracts.
 
 ## Setup
-Ensure you have the latest versions of `docker` & `docker-compose` on your machine. Clone the project:
+Clone the project:
 
 ```bash
 cd ~/
 git clone https://github.com/jakemath/Crypto-ETL
 ```
 
-### Quickstart - Prod Mode
+### Quickstart - Containerized
+Ensure you have the latest versions of `docker` & `docker-compose` on your machine. 
+
 Move into the project directory and run the containers:
 
 ```bash
@@ -28,23 +30,21 @@ Ensure the `PROD` variable is unset:
 ```bash
 unset PROD
 ```
-
 Download the project packages:
 ```bash
 cd ~/Crypto-ETL/src
 npm install
 ```
-
-Export the TASK variable as the name of the task you want to run (`uniswap-graph` in this example) and run `dispatch.js` - this is the main entrypoint script automatically executed in prod mode by `docker-compose`:
+Export the TASK variable as the name of the task you want to run (`track-tokens` in this example) and run `dispatch.js` - this is the main entrypoint script automatically executed in the containerized deployment:
 ```bash
 cd ~/Crypto-ETL
-export TASK=uniswap-graph
+export TASK=track-tokens
 node dispatch.js
 ```
 
 ## Architecture
 
-This framework is designed to concurrently stream many data feeds on the same host. These various processes and workflows are referred to as `tasks`, and are specified with the `TASK` environment variable. Each container sets this variable to its respective `task` - the `task` name maps to configurations specified in `src/conf.json`. 
+This project is a single-host framework for processing multiple data feeds and jobs concurrently. These various processes and workflows are referred to as `tasks`, and are specified with the `TASK` environment variable. Each container sets this variable to its respective `task` - the name maps to configurations specified in `src/conf.json`. 
 
 ### Task Configuration - `src/conf.json`
 ```json
@@ -62,21 +62,19 @@ This configuration can be customized to one's needs - the same task function can
 The `onChain` key specifies whether the task should be run using the Hardhat Runtime Environment. This enables lower-level blockchain interactions leveraging `hardhat` and `ethers.js`. These tasks should be defined as `hardhat` tasks and imported into `hardhat.config.js`. See `tasks/uniswapOnChain.js` for an example.
 
 ### Docker Image
-Task containers are built on top of the full `node.js` image - the project `package.json` further specifies `hardhat` and `ethers.js` as dependencies. These libraries enable one to interact with blockchain networks at low levels - see the `stream-pairs` task in `tasks/uniswapOnChain.js` for an example.
+Task containers are built on a `node.js` base image - the project `package.json` further specifies `hardhat` and `ethers.js` as dependencies. These libraries enable one to interact with blockchain networks at low levels - see the `stream-pairs` task in `tasks/uniswapOnChain.js` for an example.
 
 ### Docker Compose
-Each distinct task should be added as a distinct `service` in `docker-compose.yml`. One can easily customize the configurations for a specific task to suit one's purposes. Unless otherwise specified, all task containers share the same `node_modules` folder as a mounted volume. This means project dependencies need only be downloaded once in deployment, regardless of the number of tasks.
+Each distinct task should be added as a distinct `service` in `docker-compose.yml`. One can easily customize the configurations for a specific task to suit one's purposes. Unless otherwise specified, all task containers share the same `node_modules` folder as a mounted volume. This means project dependencies only need to be downloaded once in deployment, regardless of the number of tasks.
 
 Alongside the `task` containers is the `db` container, which is built off the `postgresql` base image. This serves as the database for all tasks. The ORM client can be accessed and configured via `src/db/client.js`. 
 
 ### Single-Host Architecture
-
 ![Design](design.png)
 
 By supporting many different data feeds on the same machine, the single-host architecture effectively maximizes server resources. A true production-grade data platform, however, may seek to decouple the various components into a distributed system, like the diagram below illustrates.
 
 ### Distributed Architecture
-
 ![Distributed Design](distributed_design.png)
 
 In the distributed architecture, all individual components are decoupled into their own services across various nodes. This architecture could be built using a multi-host container orchestration service such as Kubernetes or Docker Swarm. 

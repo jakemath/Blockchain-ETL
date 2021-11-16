@@ -1,6 +1,6 @@
 /*
 Author: Jake Mathai
-Purpose: Hardhat conf
+Purpose: Hardhat config
 */
 
 require('@nomiclabs/hardhat-waffle')

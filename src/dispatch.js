@@ -4,7 +4,6 @@ Purpose: Entrypoint script for running tasks.
 Reads the TASK environment variable, which maps to task-specific configurations defined in conf.json
 */
 
-const time = require('./utils/time')
 const { migrate } = require('./db/migrations')
 
 const dispatch = async() => {
@@ -12,11 +11,11 @@ const dispatch = async() => {
     if (process.env['PROD'] == 'true')  // If prod --> migrate DB
         await migrate()
     const taskFunction = configData['FUNCTION']
-    if (configData['ON_CHAIN'] == 'true') {
+    if (configData['ON_CHAIN'] == 'true') {  // If on-chain --> run in hardhat runtime environment
         const hre = require('hardhat')
         await hre.run(taskFunction)
     }
-    else {
+    else {  // If off-chain --> import and execute as a normal node.js function
         const taskModule = require('./' + configData['MODULE'])
         const taskArgs = configData['ARGS'] || []
         await taskModule[taskFunction](...taskArgs)

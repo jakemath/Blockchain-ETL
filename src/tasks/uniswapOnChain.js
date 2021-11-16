@@ -1,6 +1,6 @@
 /*
 Author: Jake Mathai
-Purpose: Uniswap on-chain tasks. Example task streams Sync and Swap events from target token pair contracts in real-time
+Purpose: Uniswap on-chain tasks. Example task: stream Sync and Swap events from target token pair contracts in real-time
 - Sync events are recorded as Liquidity items in the DB
 - Swap events are recorded as Swap items in the DB
 */

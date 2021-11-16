@@ -8,11 +8,11 @@ const { Op } = require('sequelize')
 const db = require('../db/client')
 const time = require('../utils/time')
 const { TheGraphClient } = require('../utils/thegraph')
-const { parse } = require('graphql')
 
 const UniswapClient = async() => {
     const thegraph = TheGraphClient()
     
+    // Fetch token information
     const getAllTokenSymbolsAndDecimals = async() => {
         let tokenSymbols = {}  // Map address to symbol
         let tokenDecimals = {} // Map address to decimals
@@ -46,6 +46,7 @@ const UniswapClient = async() => {
 
     const getETHPrice = async() => parseFloat((await thegraph.querySubgraph('UniswapV2', 'Bundle', 'where: {id: "1"}'))[0]['ethPrice'])
 
+    // Filter for token observations in window
     const getObservationsInWindow = async(tokenAddress, fromDate=null, toDate=time.now()) => {
         if (typeof toDate == 'string')  // Coerce fromDate and toDate to datetime objects. If fromDate is null, assume 24h window before toDate
             toDate = new Date(toDate)
@@ -65,6 +66,7 @@ const UniswapClient = async() => {
         })
     }
 
+    // Notional USD token volume in window. Calculated as the change in total volume over the window multiplied by the average price over the period
     const calculateTokenVolume = observations => {
         if (observations == null || observations.length < 2)
             return 0
@@ -75,13 +77,13 @@ const UniswapClient = async() => {
         return (latestTokenVolume - earliestTokenVolume) * meanPrice
     }
 
-    // Fetch token observations in window, take difference in totalTokenVolume between the latest record and the earliest record,
-    // and multiply by the average price over the period
+    // Get uniswap trading volume for a token denominated in USD
     const getTokenVolume = async(tokenAddress, fromDate=null, toDate=time.now()) => {
         const observations = await getObservationsInWindow(tokenAddress, fromDate, toDate)
         return calculateTokenVolume(observations)
     }
 
+    // Notional USD token liquidity in window. Calculated as the mean liquidity level of the token over the period multiplied by the average price over the period
     const calculateTokenLiquidity = observations => {
         if (observations == null || observations.length < 2)
             return null
@@ -92,13 +94,13 @@ const UniswapClient = async() => {
         return meanTokenLiquidity * meanPrice
     }
 
-    // Fetch token observations in window, take difference in totalTokenVolume between the latest record and the earliest record,
-    // and multiply by the average price over the period
+    // Get aggregate token liquidity for a token denominated in USD
     const getTokenLiquidity = async(tokenAddress, fromDate=null, toDate=time.now()) => {
         const observations = await getObservationsInWindow(tokenAddress, fromDate, toDate)
         return calculateTokenLiquidity(observations)
     }
 
+    // Run liquidity and volume calcs on a single DB query
     const getTokenLiquidityAndVolume = async(tokenAddress, fromDate=null, toDate=time.now()) => {
         const observations = await getObservationsInWindow(tokenAddress, fromDate, toDate)
         return [calculateTokenLiquidity(observations), calculateTokenVolume(observations)]
@@ -118,16 +120,3 @@ const UniswapClient = async() => {
 module.exports = {
     UniswapClient
 }
-
-/*
-const { UniswapClient } = require('./utils/uniswap')
-const BADGER = '0x3472a5a71965499acd81997a54bba8d852c6e53d'
-const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
-const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
-fetchVolume = async() => {
-    uniswap = await UniswapClient()
-    console.log('WETH:', '$' + (await uniswap.getTokenVolumeGraph(WETH)).toLocaleString())
-    console.log('BADGER:', '$' + (await uniswap.getTokenVolumeGraph(BADGER)).toLocaleString())
-    console.log('USDC:', '$' + (await uniswap.getTokenVolumeGraph(USDC)).toLocaleString())
-}
-*/

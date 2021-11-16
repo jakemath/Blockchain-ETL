@@ -1,15 +1,12 @@
 /*
 Author: Jake Mathai
-Purpose: Real-time Uniswap data streaming; fetches pair contract addresses for target tokens, and listens for event emissions from the contracts
-- Sync events are recorded as Liquidity items in the DB
-- Swap events are recorded as Swap items in the DB
+Purpose: Uniswap off-chain tasks. Example task: track updates to Token entities in subgraph
 */
 
 const db = require('../db/client')
 const time = require('../utils/time')
 const { UniswapClient } = require('../utils/uniswap')
 const { TheGraphClient } = require('../utils/thegraph')
-const { parse } = require('graphql')
 
 const trackTokens = async() => {
     const uniswap = await UniswapClient()
@@ -59,7 +56,7 @@ const trackTokens = async() => {
     for (const targetTokenAddress of targetTokenAddresses)
         monitorToken(targetTokenAddress)
     while (true)
-        await time.sleep(3600)
+        await time.sleep(3600)  // Keep monitoring processes alive
 }
 
 module.exports = {

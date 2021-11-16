@@ -22,6 +22,7 @@ const trackTokens = async() => {
     const useDB = process.env['PROD'] == 'true'
 
     const monitorToken = async targetTokenAddress => {
+
         const targetTokenSymbol = targetTokens[targetTokenAddress]
         console.log(`Monitoring ${targetTokenSymbol}...`)
         // Query the Token entity and poll for updated records every second
@@ -49,6 +50,10 @@ const trackTokens = async() => {
                     console.log(`---> Volume: $${volume.toLocaleString()}`)
                 }
                 return null
+            },
+            'error': err => {
+                console.log('ERROR:', err)
+                process.exit(1)  // Force container restart on error
             }
         })
     }

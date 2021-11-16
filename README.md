@@ -62,4 +62,4 @@ This architecture can support many different data feeds on the same machine, eff
 
 In this architecture, all the individual components of the pipeline are decoupled into their own services. Additionally, the architecture integrates a message bus (RabbitMQ in this example) into the pipeline. It is built to scale.
 
-Message bus architectures are especially powerful for data platforms due to their programmability and flexibility. Among other things, a message bus allows asynchronous execution of tasks such as writing data to a database, as well as automatic retries with exponential backoff in the case of failed tasks for any reason.
+Message bus architectures are especially powerful for data platforms due to their programmability and flexibility. Among other things, a message bus allows asynchronous execution of tasks such as writing data to a database, as well as automatic retries with exponential backoff in the case of task failure.

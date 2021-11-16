@@ -1,7 +1,7 @@
 {
   "name": "Crypto-ETL",
   "scripts": {
-    "test-db": "jest"
+    "test-db": "jest test/db.test.js"
   },
   "devDependencies": {
     "apollo-boost": "0.4.9",

@@ -42,20 +42,20 @@ services:
       - POSTGRES_PASSWORD=postgres
     volumes:
       - track-tokens-node-modules:/src/node_modules/
-  # stream-pairs:  # On-chain data streaming container, for demonstration purposes
-  #   restart: unless-stopped
-  #   container_name: stream-pairs
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   command: ['node', 'dispatch.js']
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #   environment:
-  #     - TASK=stream-pairs
-  #     - PROD=true
-  #     - POSTGRES_USER=postgres
-  #     - POSTGRES_PASSWORD=postgres
-  #   volumes:
-  #     - stream-pairs-node-modules:/src/node_modules/
+  stream-pairs:  # On-chain data streaming container, for demonstration purposes
+    restart: unless-stopped
+    container_name: stream-pairs
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ['node', 'dispatch.js']
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - TASK=stream-pairs
+      - PROD=true
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - stream-pairs-node-modules:/src/node_modules/

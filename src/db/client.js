@@ -1,6 +1,6 @@
 /*
 Author: Jake Mathai
-Purpose: ORM for RDBMS
+Purpose: Sequelize ORM for RDBMS
 */
 
 const Sequelize = require('sequelize')

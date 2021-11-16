@@ -1,8 +1,8 @@
 /*
 Author: Jake Mathai
 Purpose: Uniswap on-chain tasks. Example task: stream Sync and Swap events from target token pair contracts in real-time
-- Sync events are recorded as Liquidity items in the DB
-- Swap events are recorded as Swap items in the DB
+- Sync events are recorded as Liquidity items in DB
+- Swap events are recorded as Swap items in DB
 */
 
 const db = require('../db/client')
@@ -11,8 +11,9 @@ const { UniswapClient } = require('../utils/uniswap')
 
 task('streamPairs', 'Stream Uniswap pair events in real-time')
     .setAction(async() => {
-        const uniswap = await UniswapClient()
-        
+        const uniswap = UniswapClient()
+        await uniswap.loadAllTokenSymbolsAndDecimals()
+
         const targetTokens = {  // Tokens to track
             '0x3472a5a71965499acd81997a54bba8d852c6e53d': 'BADGER',
             '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 'USDC',

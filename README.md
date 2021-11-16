@@ -44,22 +44,43 @@ node dispatch.js
 
 ## Architecture
 
-This framework is designed to concurrently stream many data feeds on the same host. In production mode, each distinct data feed is deployed in its own docker container with the `TASK` environment variable set to the name of the respective task. The task name maps to configurations specified in `src/conf.json`, which can be customized to one's needs.
+This framework is designed to concurrently stream many data feeds on the same host. These various processes and workflows are referred to as `tasks`, and are specified with the `TASK` environment variable. Each container sets this variable to its respective `task` - the `task` name maps to configurations specified in `src/conf.json`. 
 
-The base image for the task containers is `node.js`, and the `package.json` further specifies `hardhat` and `ethers.js` as dependencies. These libraries enable one to interact with blockchain networks at lower levels if necessary - the `stream-pairs` task is an example of such a use case, in which events are directly streamed from pair contracts.
+### Task Configuration - `src/conf.json`
+```json
+{
+    "task-name": {
+        "module": "path/to/task/module",
+        "function": "functionName",
+        "args": [],
+        "onChain": "true or false",
+    }
+}
+```
+This configuration can be customized to one's needs - the same task function can be called via multiple tasks with either the same or different function arguments.
 
-To run multiple tasks at once, `docker-compose` is used to orchestrate the deployment. The diagram below illustrates this arrangement.
+The `onChain` key specifies whether the task should be run using the Hardhat Runtime Environment. This enables lower-level blockchain interactions leveraging `hardhat` and `ethers.js`. These tasks should be defined as `hardhat` tasks and imported into `hardhat.config.js`. See `tasks/uniswapOnChain.js` for an example.
 
-### Local Architecture
+### Docker Image
+Task containers are built on top of the full `node.js` image - the project `package.json` further specifies `hardhat` and `ethers.js` as dependencies. These libraries enable one to interact with blockchain networks at low levels - see the `stream-pairs` task in `tasks/uniswapOnChain.js` for an example.
+
+### Docker Compose
+Each distinct task should be added as a distinct `service` in `docker-compose.yml`. One can easily customize the configurations for a specific task to suit one's purposes. Unless otherwise specified, all task containers share the same `node_modules` folder as a mounted volume. This means project dependencies need only be downloaded once in deployment, regardless of the number of tasks.
+
+Alongside the `task` containers is the `db` container, which is built off the `postgresql` base image. This serves as the database for all tasks. The ORM client can be accessed and configured via `src/db/client.js`. 
+
+### Single-Host Architecture
 
 ![Design](design.png)
 
-By supporting many different data feeds on the same machine, this architecture effectively maximizing server resources. A true production-grade data platform, however, may seek to decouple the various components into a distributed system, like the diagram below illustrates.
+By supporting many different data feeds on the same machine, the single-host architecture effectively maximizes server resources. A true production-grade data platform, however, may seek to decouple the various components into a distributed system, like the diagram below illustrates.
 
 ### Distributed Architecture
 
 ![Distributed Design](distributed_design.png)
 
-In this architecture, all the individual components of the pipeline are decoupled into their own services. Additionally, the architecture integrates a message bus (RabbitMQ in this example) into the pipeline. It is built to scale.
+In the distributed architecture, all individual components are decoupled into their own services across various nodes. This architecture could be built using a multi-host container orchestration service such as Kubernetes or Docker Swarm. 
 
-Message bus architectures are especially powerful for data platforms due to their programmability and flexibility. Among other things, a message bus allows asynchronous execution of tasks such as writing data to a database, as well as automatic retries with exponential backoff in the case of task failure.
+An additional key feature in this architecture is the message queue service (RabbitMQ in this example). Message queue architectures are especially powerful for data platforms due to their scalability and flexibility. Among other things, a message queue allows horizontal scalability, asynchronous execution of tasks such as writing data to a database, and, in the case of task failure, automatic retries with exponential backoff.
+
+The distributed architecture is built to scale.

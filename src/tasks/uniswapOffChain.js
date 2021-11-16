@@ -9,23 +9,22 @@ const { UniswapClient } = require('../utils/uniswap')
 const { TheGraphClient } = require('../utils/thegraph')
 
 const trackTokens = async() => {
-    const uniswap = await UniswapClient()
+    const uniswap = UniswapClient()
     const thegraph = TheGraphClient()
 
     const targetTokens = {  // Tokens to track
         '0x3472a5a71965499acd81997a54bba8d852c6e53d': 'BADGER',
-        '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': 'WETH',
-        '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 'USDC',
-        '0x514910771af9ca656af840dff83e8264ecf986ca': 'LINK'
+        // '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2': 'WETH',
+        // '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': 'USDC',
+        // '0x514910771af9ca656af840dff83e8264ecf986ca': 'LINK'
     }
     const targetTokenAddresses = Object.keys(targetTokens)
     const useDB = process.env['PROD'] == 'true'
 
     const monitorToken = async targetTokenAddress => {
-
         const targetTokenSymbol = targetTokens[targetTokenAddress]
         console.log(`Monitoring ${targetTokenSymbol}...`)
-        // Query the Token entity and poll for updated records every second
+        // Query the Token entity and poll for record updates every second
         let tokenObservationMonitor = thegraph.watchQuery('UniswapV2', 'Token', `first: 1, where: {id: "${targetTokenAddress}"}`, 1000)
         tokenObservationMonitor.subscribe({
             'next': async({data}) => {  // On new entity -> calculate price and write to DB
@@ -58,7 +57,7 @@ const trackTokens = async() => {
             },
             'error': err => {
                 console.log('ERROR:', err)
-                process.exit(1)  // Kill process and force container restart
+                process.exit(1)  // On error -> kill process and force container restart
             }
         })
     }

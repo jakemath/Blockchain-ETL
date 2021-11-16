@@ -10,14 +10,14 @@ const dispatch = async() => {
     const configData = require('./conf')[process.env['TASK']]
     if (process.env['PROD'] == 'true')  // If prod --> migrate DB
         await migrate()
-    const taskFunction = configData['FUNCTION']
-    if (configData['ON_CHAIN'] == 'true') {  // If on-chain --> run in hardhat runtime environment
+    const taskFunction = configData['function']
+    if (configData['onChain'] == 'true') {  // If on-chain --> run in hardhat runtime environment
         const hre = require('hardhat')
         await hre.run(taskFunction)
     }
     else {  // If off-chain --> import and execute as a normal node.js function
-        const taskModule = require('./' + configData['MODULE'])
-        const taskArgs = configData['ARGS'] || []
+        const taskModule = require('./' + configData['module'])
+        const taskArgs = configData['args'] || []
         await taskModule[taskFunction](...taskArgs)
     }
 }

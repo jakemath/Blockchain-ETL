@@ -1,6 +1,6 @@
 /*
 Author: Jake Mathai
-Purpose: DB migration processes
+Purpose: RDBMS migrations
 */
 
 const db = require('./client')

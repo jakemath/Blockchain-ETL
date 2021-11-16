@@ -9,13 +9,14 @@ const db = require('../db/client')
 const time = require('../utils/time')
 const { TheGraphClient } = require('../utils/thegraph')
 
-const UniswapClient = async() => {
+const UniswapClient = () => {
     const thegraph = TheGraphClient()
     
+    let tokenSymbols = {}  // Map address to symbol
+    let tokenDecimals = {} // Map address to decimals
+
     // Fetch token information
-    const getAllTokenSymbolsAndDecimals = async() => {
-        let tokenSymbols = {}  // Map address to symbol
-        let tokenDecimals = {} // Map address to decimals
+    const loadAllTokenSymbolsAndDecimals = async() => {
         let queries = []
         for (let skip = 0; skip < 6000; skip += 1000)  // Paginated token query. Graph API limits skip to 6000 unfortunately
             queries.push(thegraph.querySubgraph('UniswapV2', 'Token', `first: 1000, skip: ${skip}, orderBy: "tradeVolumeUSD", orderDirection: desc`)) 
@@ -29,9 +30,6 @@ const UniswapClient = async() => {
         })
         return [tokenSymbols, tokenDecimals]
     }
-
-    console.log('Fetching Uniswap token info...')
-    const [tokenSymbols, tokenDecimals] = await getAllTokenSymbolsAndDecimals()
 
     // Query subgraph for all pair contract addresses for the target token
     const getAllTokenPairAddresses = async targetTokenAddress => {
@@ -109,6 +107,7 @@ const UniswapClient = async() => {
     return {
         tokenSymbols,
         tokenDecimals,
+        loadAllTokenSymbolsAndDecimals,
         getAllTokenPairAddresses,
         getETHPrice,
         getTokenVolume,

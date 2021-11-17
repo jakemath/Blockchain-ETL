@@ -21,6 +21,13 @@ bash run.sh
 
 This will build and run the relevant task containers defined in `docker-compose.yml` using `docker-compose`.
 
+#### Run Tests
+Once the containers are built, you can run the tests via
+```bash
+cd ~/Crypto-ETL
+bash test.sh
+```
+
 #### Stream Logs
 In the containerized deployment, logs from all containers will automatically be streamed to the console. You can manually stream the logs via
 ```bash
@@ -29,7 +36,7 @@ bash stream_logs.sh
 ```
 
 #### Terminate All Tasks
-Stop and remove all containers:
+Stop and remove all containers
 ```bash
 cd ~/Crypto-ETL
 bash stop.sh

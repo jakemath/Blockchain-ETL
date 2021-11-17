@@ -4,7 +4,7 @@ version: '3'
 volumes:
   uniswap-db: null
   track-tokens-node-modules: null
-  stream-pairs-node-modules: null
+  track-pairs-node-modules: null
 services:
   db:  # DB container
     image: postgres
@@ -36,7 +36,7 @@ services:
       db:
         condition: service_healthy  # Wait for db to be ready to accept connections before executing
     environment:
-      - TASK=track-tokens-offchain  # Specify task name in environment, which maps to specific configurations in src/conf.json
+      - TASK=track-tokens  # Specify task name in environment, which maps to specific configurations in src/conf.json
       - PROD=true  # Production flag to specify whether to write to DB along with any other prod-specific settings
       - POSTGRES_USER=postgres  # DB credentials, can be accessed via a secrets manager service at runtime
       - POSTGRES_PASSWORD=postgres
@@ -44,7 +44,7 @@ services:
       - track-tokens-node-modules:/src/node_modules/
   track-pairs:  # Uniswap on-chain data streaming container
     restart: unless-stopped
-    container_name: stream-pairs
+    container_name: track-pairs
     build:
       context: .
       dockerfile: Dockerfile
@@ -53,9 +53,9 @@ services:
       db:
         condition: service_healthy
     environment:
-      - TASK=track-pairs-onchain
+      - TASK=track-pairs
       - PROD=true
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
-      - stream-pairs-node-modules:/src/node_modules/
+      - track-pairs-node-modules:/src/node_modules/

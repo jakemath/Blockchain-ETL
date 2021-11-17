@@ -50,8 +50,13 @@ const TheGraphClient = () => {
                         query getPairs {
                             pairs{} {
                                 id
-                                token0{id}
-                                token1{id}
+                                token0 {
+                                    id 
+                                    symbol 
+                                    decimals
+                                }
+                                token1{
+                                    id symbol decimals}
                                 reserve0
                                 reserve1
                             }

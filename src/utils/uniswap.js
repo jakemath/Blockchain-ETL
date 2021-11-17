@@ -11,28 +11,9 @@ const { TheGraphClient } = require('../utils/thegraph')
 
 const UniswapClient = () => {
     const thegraph = TheGraphClient()
-    
-    let tokenSymbols = {}  // Map address to symbol
-    let tokenDecimals = {} // Map address to decimals
-
-    // Fetch token information
-    const loadAllTokenSymbolsAndDecimals = async() => {
-        let queries = []
-        for (let skip = 0; skip < 6000; skip += 1000)  // Paginated token query. Graph API limits skip to 6000 unfortunately
-            queries.push(thegraph.querySubgraph('UniswapV2', 'Token', `first: 1000, skip: ${skip}, orderBy: "tradeVolumeUSD", orderDirection: desc`)) 
-        let results = await Promise.all(queries)
-        results.forEach(resultSet => {
-            resultSet.forEach(tokenResult => {
-                const tokenAddress = tokenResult['id']
-                tokenSymbols[tokenAddress] = tokenResult['symbol']
-                tokenDecimals[tokenAddress] = tokenResult['decimals']
-            })
-        })
-        return [tokenSymbols, tokenDecimals]
-    }
 
     // Query subgraph for all pair contract addresses for the target token
-    const getAllTokenPairAddresses = async targetTokenAddress => {
+    const getAllTokenPairs = async targetTokenAddress => {
         let queries = []
         for (let skip = 0; skip < 6000; skip += 1000)
             queries.push(thegraph.querySubgraph('UniswapV2', 'Pair', `first: 1000, skip: ${skip}, where: {token0: "${targetTokenAddress}"}`)) 
@@ -64,15 +45,19 @@ const UniswapClient = () => {
         })
     }
 
-    // Notional USD token volume in window. Calculated as the change in total volume over the window multiplied by the average price over the period
+    // Notional USD token volume in window. Calculated as the change in total volume over the window multiplied by the volume-weighted average price over the period
     const calculateTokenVolume = observations => {
         if (observations == null || observations.length < 2)
             return 0
-        const prices = observations.map(observation => parseFloat(observation['price']))
-        const meanPrice = prices.reduce((a, b) => a + b, 0.0) / observations.length
         const latestTokenVolume = parseFloat(observations[observations.length - 1]['totalTokenVolume'])
         const earliestTokenVolume = parseFloat(observations[0]['totalTokenVolume'])
-        return (latestTokenVolume - earliestTokenVolume) * meanPrice
+        const totalTokenVolume = latestTokenVolume - earliestTokenVolume
+        let volumeWeightedAveragePrice = 0
+        for (let i = 1; i < observations.length; ++i) {
+            const tokenVolume = parseFloat(observations[i]['totalTokenVolume']) - parseFloat(observations[i - 1]['totalTokenVolume'])
+            volumeWeightedAveragePrice += parseFloat(observations[i]['price']) * tokenVolume / totalTokenVolume
+        }
+        return totalTokenVolume * volumeWeightedAveragePrice
     }
 
     // Get uniswap trading volume for a token denominated in USD
@@ -104,15 +89,15 @@ const UniswapClient = () => {
         return [calculateTokenLiquidity(observations), calculateTokenVolume(observations)]
     }
 
+    const subscribeToToken = (tokenAddress, interval=1000) => thegraph.watchQuery('UniswapV2', 'Token', `first: 1, where: {id: "${tokenAddress}"}`, interval)
+
     return {
-        tokenSymbols,
-        tokenDecimals,
-        loadAllTokenSymbolsAndDecimals,
-        getAllTokenPairAddresses,
+        getAllTokenPairs,
         getETHPrice,
         getTokenVolume,
         getTokenLiquidity,
-        getTokenLiquidityAndVolume
+        getTokenLiquidityAndVolume,
+        subscribeToToken
     }
 }
 

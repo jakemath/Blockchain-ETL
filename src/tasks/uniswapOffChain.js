@@ -6,11 +6,9 @@ Purpose: Uniswap off-chain tasks. Example task: track updates to Token entities 
 const db = require('../db/client')
 const time = require('../utils/time')
 const { UniswapClient } = require('../utils/uniswap')
-const { TheGraphClient } = require('../utils/thegraph')
 
 const trackTokens = async() => {
     const uniswap = UniswapClient()
-    const thegraph = TheGraphClient()
 
     const targetTokens = {  // Tokens to track
         '0x3472a5a71965499acd81997a54bba8d852c6e53d': 'BADGER',
@@ -25,7 +23,7 @@ const trackTokens = async() => {
         const targetTokenSymbol = targetTokens[targetTokenAddress]
         console.log(`Monitoring ${targetTokenSymbol}...`)
         // Query the Token entity and poll for record updates every second
-        let tokenObservationMonitor = thegraph.watchQuery('UniswapV2', 'Token', `first: 1, where: {id: "${targetTokenAddress}"}`, 1000)
+        let tokenObservationMonitor = uniswap.subscribeToToken(targetTokenAddress)
         tokenObservationMonitor.subscribe({
             'next': async({data}) => {  // On new entity -> calculate price and write to DB
                 try {

@@ -38,7 +38,7 @@ npm install
 Export the TASK variable as the name of the task you want to run (`track-tokens` in this example) and run `dispatch.js` - this is the main entrypoint script automatically executed in the containerized deployment:
 ```bash
 cd ~/Crypto-ETL
-export TASK=track-tokens
+export TASK=track-tokens-offchain
 node dispatch.js
 ```
 
@@ -62,7 +62,7 @@ This configuration can be customized to one's needs - the same task function can
 The `onChain` key specifies whether the task should be run using the Hardhat Runtime Environment. This enables lower-level blockchain interactions leveraging `hardhat` and `ethers.js`. These tasks should be defined as `hardhat` tasks and imported into `hardhat.config.js`. See `tasks/uniswapOnChain.js` for an example.
 
 ### Docker Image
-Task containers are built on a `node.js` base image - the project `package.json` further specifies `hardhat` and `ethers.js` as dependencies. These libraries enable one to interact with blockchain networks at low levels - see the `stream-pairs` task in `tasks/uniswapOnChain.js` for an example.
+Task containers are built on a `node.js` base image - the project `package.json` further specifies `hardhat` and `ethers.js` as dependencies. These libraries enable one to interact with blockchain networks at low levels - see the `track-pairs` task in `tasks/uniswapOnChain.js` for an example.
 
 ### Docker Compose
 Each distinct task should be added as a distinct `service` in `docker-compose.yml`. One can easily customize the configurations for a specific task to suit one's purposes. Unless otherwise specified, all task containers share the same `node_modules` folder as a mounted volume. This means project dependencies only need to be downloaded once in deployment, regardless of the number of tasks.

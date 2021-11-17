@@ -4,9 +4,9 @@
         "function": "trackTokens",
         "onChain": "false"
     },
-    "stream-pairs": {
+    "track-pairs": {
         "module": "tasks/uniswapOnChain",
-        "function": "streamPairs",
+        "function": "trackPairs",
         "onChain": "true"
     }
 }

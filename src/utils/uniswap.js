@@ -16,14 +16,28 @@ const UniswapClient = () => {
     const getAllTokenPairs = async targetTokenAddress => {
         let queries = []
         for (let skip = 0; skip < 6000; skip += 1000)
-            queries.push(thegraph.querySubgraph('UniswapV2', 'Pair', `first: 1000, skip: ${skip}, where: {token0: "${targetTokenAddress}"}`)) 
+            queries.push(thegraph.querySubgraph(
+                'UniswapV2', 
+                'Pair', 
+                `first: 1000, skip: ${skip}, where: {token0: "${targetTokenAddress}"}`
+            )) 
         for (let skip = 0; skip < 6000; skip += 1000)
-            queries.push(thegraph.querySubgraph('UniswapV2', 'Pair', `first: 1000, skip: ${skip}, where: {token1: "${targetTokenAddress}"}`)) 
+            queries.push(thegraph.querySubgraph(
+                'UniswapV2', 
+                'Pair', 
+                `first: 1000, skip: ${skip}, where: {token1: "${targetTokenAddress}"}`
+            )) 
         const results = await Promise.all(queries)
         return [].concat.apply([], results);
     }
 
-    const getETHPrice = async() => parseFloat((await thegraph.querySubgraph('UniswapV2', 'Bundle', 'where: {id: "1"}'))[0]['ethPrice'])
+    const getETHPrice = async() => parseFloat((
+        await thegraph.querySubgraph(
+            'UniswapV2', 
+            'Bundle', 
+            'where: {id: "1"}'
+        ))[0]['ethPrice']
+    )
 
     // Filter for token observations in window
     const getObservationsInWindow = async(tokenAddress, fromDate=null, toDate=time.now()) => {
@@ -45,7 +59,7 @@ const UniswapClient = () => {
         })
     }
 
-    // Notional USD token volume in window. Calculated as the change in total volume over the window multiplied by the volume-weighted average price over the period
+    // Notional USD token volume in window. Calculated as the change in total volume over the window multiplied by the volume-weighted average price
     const calculateTokenVolume = observations => {
         if (observations == null || observations.length < 2)
             return 0
@@ -66,7 +80,7 @@ const UniswapClient = () => {
         return calculateTokenVolume(observations)
     }
 
-    // Notional USD token liquidity in window. Calculated as the mean liquidity level of the token over the period multiplied by the average price over the period
+    // Notional USD token liquidity in window. Calculated as the mean liquidity level of the token over the period multiplied by the average price
     const calculateTokenLiquidity = observations => {
         if (observations == null || observations.length < 2)
             return null
@@ -86,10 +100,20 @@ const UniswapClient = () => {
     // Run liquidity and volume calcs on a single DB query
     const getTokenLiquidityAndVolume = async(tokenAddress, fromDate=null, toDate=time.now()) => {
         const observations = await getObservationsInWindow(tokenAddress, fromDate, toDate)
-        return [calculateTokenLiquidity(observations), calculateTokenVolume(observations)]
+        return [
+            calculateTokenLiquidity(observations), 
+            calculateTokenVolume(observations)
+        ]
     }
 
-    const subscribeToToken = (tokenAddress, interval=1000) => thegraph.watchQuery('UniswapV2', 'Token', `first: 1, where: {id: "${tokenAddress}"}`, interval)
+    const subscribeToToken = (tokenAddress, interval=1000) => (
+        thegraph.watchQuery(
+            'UniswapV2', 
+            'Token', 
+            `first: 1, where: {id: "${tokenAddress}"}`, 
+            interval
+        )
+    )
 
     return {
         getAllTokenPairs,

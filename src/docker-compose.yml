@@ -42,20 +42,20 @@ services:
       - POSTGRES_PASSWORD=postgres
     volumes:
       - track-tokens-node-modules:/src/node_modules/
-  # track-pairs:  # Uniswap on-chain data streaming container
-  #   restart: unless-stopped
-  #   container_name: track-pairs
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   command: ['node', 'dispatch.js']
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #   environment:
-  #     - TASK=track-pairs
-  #     - PROD=true
-  #     - POSTGRES_USER=postgres
-  #     - POSTGRES_PASSWORD=postgres
-  #   volumes:
-  #     - track-pairs-node-modules:/src/node_modules/
+  track-pairs:  # Uniswap on-chain data streaming container
+    restart: unless-stopped
+    container_name: track-pairs
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ['node', 'dispatch.js']
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - TASK=track-pairs
+      - PROD=true
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - track-pairs-node-modules:/src/node_modules/

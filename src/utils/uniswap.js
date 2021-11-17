@@ -43,11 +43,14 @@ const UniswapClient = () => {
     const getObservationsInWindow = async(tokenAddress, fromDate=null, toDate=time.now()) => {
         if (typeof toDate == 'string')  // Coerce fromDate and toDate to datetime objects. If fromDate is null, assume 24h window before toDate
             toDate = new Date(toDate)
+        else if (toDate == null)
+            toDate = time.now()
         if (typeof fromDate == 'string')
             fromDate = new Date(fromDate)
-        const toDateUnix = time.datetimeToUnix(toDate)
-        if (fromDate == null)
-            fromDate = time.unixToDatetime(toDateUnix - (60*60*24))
+        else if (fromDate == null) {
+            fromDate = new Date(toDate.getTime())
+            fromDate.setUTCDate(fromDate.getUTCDate() - 1)
+        }
         return await db.TokenObservation.findAll({  // Find observations in window
             'where': {
                 'address': tokenAddress,

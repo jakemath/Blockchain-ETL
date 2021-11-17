@@ -69,7 +69,14 @@ const trackTokens = async() => {
                         tokenPayload['totalTokenVolume'] = highestObservedVolume
                     if (useDB) {
                         await db.TokenObservation.create(tokenPayload)
-                        const [liquidity, volume] = await uniswap.getTokenLiquidityAndVolume(targetTokenAddress)
+                        let toDate = time.now()
+                        let fromDate = new Date(toDate.getTime())
+                        fromDate.setUTCDate(fromDate.getUTCDate() - 1)
+                        const [liquidity, volume] = await uniswap.getTokenLiquidityAndVolume(
+                            targetTokenAddress, 
+                            fromDate, 
+                            toDate
+                        )
                         console.log(`---> 24-hour liquidity: $${liquidity.toLocaleString()}`)
                         console.log(`---> 24-hour volume: $${volume.toLocaleString()}`)
                     }

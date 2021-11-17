@@ -13,8 +13,10 @@ let fetchStats = async() => {
     console.log(`BADGER 24-hour stats from now`)
     console.log(`---> Liquidity: $${stats[0].toLocaleString()}`)
     console.log(`---> Volume: $${stats[1].toLocaleString()}`)
-    stats = await uniswap.getTokenLiquidityAndVolume(BADGER, '2021-11-15')
-    console.log(`BADGER 24-hour stats from yesterday`)
+    let date = new Date()
+    date.setUTCDate(date.getUTCDate() - 2)
+    stats = await uniswap.getTokenLiquidityAndVolume(BADGER, date)
+    console.log(`BADGER 48-hour stats from today`)
     console.log(`---> Liquidity: $${stats[0].toLocaleString()}`)
     console.log(`---> Volume: $${stats[1].toLocaleString()}`)
 }

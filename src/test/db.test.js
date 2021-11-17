@@ -5,11 +5,13 @@ Purpose: DB testing
 
 const db = require('../db/client')
 
+const TEST_ADDRESS = '1'
+
 beforeAll(async() => {
     await db.sequelize.sync({'force': true})
     await db.TokenObservation.destroy({
         'where': {
-            'address': '0'
+            'address': TEST_ADDRESS
         }
     })
 })
@@ -21,11 +23,9 @@ test('Create TokenObservations', async() => {
     const startingVolume = 1
     let totalRecords = 0
     for (let i = 0; i < 10; ++i) {
-        let date = startDate
-        date.setUTCMinutes(startDate.getUTCMinutes() + i)
         const createdObservation = await db.TokenObservation.create({
-            'address': '0',
-            'datestamp': date,
+            'address': TEST_ADDRESS,
+            'datestamp': new Date(startDate + i),
             'totalTokenVolume': startingVolume + i,
             'totalTokenLiquidity': 10,
             'price': 100
@@ -38,18 +38,18 @@ test('Create TokenObservations', async() => {
 
 // Query created observations, assert all present
 test('Get TokenObservations', async() => {
-    expect.assertions(1 + 3*10);
+    expect.assertions(31);
     const observations = await db.TokenObservation.findAll({
         'where': {
-            'address': '0'
+            'address': TEST_ADDRESS
         },
         'raw': true
     })
     expect(observations.length).toEqual(10)
     for (const observation of observations) {
-        expect(observation.address).toEqual('0')
-        expect(observation.totalTokenLiquidity).toEqual(10)
-        expect(observation.price).toEqual(100)
+        expect(observation.address).toEqual('1')
+        expect(parseFloat(observation.totalTokenLiquidity)).toEqual(10)
+        expect(parseFloat(observation.price)).toEqual(100)
     }
 })
 
@@ -57,12 +57,12 @@ test('Delete TokenObservations', async() => {
     expect.assertions(1)
     await db.TokenObservation.destroy({
         'where': {
-            'address': '0'
+            'address': TEST_ADDRESS
         },
     })
     const observations = await db.TokenObservation.findAll({
         'where': {
-            'address': '0'
+            'address': TEST_ADDRESS
         },
         'raw': true
     })

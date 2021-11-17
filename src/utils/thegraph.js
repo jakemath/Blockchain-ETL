@@ -55,8 +55,11 @@ const TheGraphClient = () => {
                                     symbol 
                                     decimals
                                 }
-                                token1{
-                                    id symbol decimals}
+                                token1 {
+                                    id 
+                                    symbol 
+                                    decimals
+                                }
                                 reserve0
                                 reserve1
                             }
@@ -71,10 +74,9 @@ const TheGraphClient = () => {
         const config = SUBGRAPHS[subgraph]
         let client = clients[subgraph]
         if (client == null) {
-            const subgraphUrl = config['url']
             client = new ApolloClient({
                 'link': createHttpLink({
-                    'uri': subgraphUrl,
+                    'uri': config['url'],
                     fetch
                 }),
                 'cache': new InMemoryCache(),
@@ -82,8 +84,7 @@ const TheGraphClient = () => {
             })
             clients[subgraph] = client
         }
-        let entityConfig = config['entities'][entity]
-        let query = entityConfig['query']
+        let query = config['entities'][entity]['query']
         if (filterString != null)
             query = query.replace('{}', '(' + filterString + ')')
         else
@@ -92,13 +93,9 @@ const TheGraphClient = () => {
     }
 
     const querySubgraph = async(subgraph, entity, filterString=null) => {
-        const subgraphConfig = SUBGRAPHS[subgraph]
         const query = buildQuery(subgraph, entity, filterString)
-        return (
-            await clients[subgraph].query({
-                'query': query
-            })
-        ).data[subgraphConfig['entities'][entity]['name']]
+        const entityName = SUBGRAPHS[subgraph]['entities'][entity]['name']
+        return (await clients[subgraph].query({'query': query})).data[entityName]
     }
 
     const watchQuery = (subgraph, entity, filterString=null, interval=null) => {

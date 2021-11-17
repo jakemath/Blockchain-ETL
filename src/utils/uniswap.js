@@ -83,7 +83,7 @@ const UniswapClient = () => {
     // Notional USD token liquidity in window. Calculated as the mean liquidity level of the token over the period multiplied by the average price
     const calculateTokenLiquidity = observations => {
         if (observations == null || observations.length < 2)
-            return null
+            return 0
         const prices = observations.map(observation => parseFloat(observation['price']))
         const tokenLiquidities = observations.map(observation => parseFloat(observation['totalTokenLiquidity']))
         const meanPrice = prices.reduce((a, b) => a + b, 0.0) / observations.length
@@ -118,6 +118,7 @@ const UniswapClient = () => {
     return {
         getAllTokenPairs,
         getETHPrice,
+        getObservationsInWindow,
         getTokenVolume,
         getTokenLiquidity,
         getTokenLiquidityAndVolume,

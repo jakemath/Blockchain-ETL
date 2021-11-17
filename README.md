@@ -4,11 +4,11 @@ Node.js crypto data ETL framework for streaming and storing data from on and off
 ## Available Tasks
 ```
 1. track-tokens (off-chain)
-- Polls Uniswap V2 subgraph for updates to target token's Token entity
-- Writes entity updates to DB as TokenObservations
-- Calculates 24-hour liquidity and volume from TokenObservations
+    - Polls Uniswap V2 subgraph for updates to target token's Token entity
+    - Writes entity updates to DB as TokenObservations
+    - Calculates 24-hour liquidity and volume from TokenObservations
 2. track-pairs (on-chain) 
-- Streams events emitted from all Pair contracts for target tokens (on-chain)
+    - Streams events emitted from all Pair contracts for target tokens
 ```
 
 ## Setup

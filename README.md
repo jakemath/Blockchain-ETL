@@ -12,8 +12,7 @@ Node.js crypto data ETL framework for streaming and storing data from on and off
 ```
 
 ## Setup
-Clone the project:
-
+Clone the project
 ```bash
 cd ~/
 git clone https://github.com/jakemath/Crypto-ETL
@@ -22,8 +21,7 @@ git clone https://github.com/jakemath/Crypto-ETL
 ### Quickstart - Containerized
 Ensure you have the latest versions of `docker` & `docker-compose` on your machine. 
 
-Move into the project directory and run the containers:
-
+Move into the project directory and run the containers
 ```bash
 cd ~/Crypto-ETL
 bash run.sh
@@ -105,6 +103,7 @@ Alongside the task containers is the `db` container, which is built using the `p
 
 ### Database Schema
 The `TokenObservation` schema corresponds to observed Token entities in the Uniswap V2 Subgraph, given a target token to track.
+
 ##### TokenObservation
 ```json
 {

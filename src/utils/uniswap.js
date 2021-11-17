@@ -54,9 +54,7 @@ const UniswapClient = () => {
         return await db.TokenObservation.findAll({  // Find observations in window
             'where': {
                 'address': tokenAddress,
-                'datestamp': {
-                    [Op.between] : [fromDate, toDate]
-                }
+                'datestamp': {[Op.between]: [fromDate, toDate]}
             },
             'raw': true
         })

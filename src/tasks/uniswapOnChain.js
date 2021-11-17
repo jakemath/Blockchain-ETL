@@ -5,7 +5,6 @@ Purpose: Uniswap on-chain tasks. Example task: stream Sync and Swap events from 
 - Swap events are recorded as Swap items in DB
 */
 
-const db = require('../db/client')
 const time = require('../utils/time')
 const { UniswapClient } = require('../utils/uniswap')
 
@@ -20,7 +19,7 @@ task('trackPairs', 'Stream Uniswap pair events in real-time').setAction(async() 
     }
     const targetTokenAddresses = Object.keys(targetTokens)
 
-    let provider = new ethers.providers.WebSocketProvider(process.env.WS_URL, 'mainnet')  // Use WebSocket provider for efficient subscriptions
+    let provider = new ethers.providers.WebSocketProvider(process.env.WS_URL, 'mainnet')  // Use WebSocket provider for efficient event subscriptions
     const syncEventTopic = ethers.utils.id('Sync(uint112,uint112)')
     const syncEventInterface = new ethers.utils.Interface(  // Sync event ABI interface to parse payload
         ['event Sync(uint112 reserve0, uint112 reserve1)']
@@ -29,13 +28,11 @@ task('trackPairs', 'Stream Uniswap pair events in real-time').setAction(async() 
     const swapEventInterface = new ethers.utils.Interface(  // Swap event ABI interface to parse payload
         ['event Swap(address indexed sender, uint256 amount0In, uint256 amount1In, uint256 amount0Out, uint256 amount1Out, address indexed to)']
     )
-    const useDB = process.env['PROD'] == 'true'
 
     const trackTokenPairs = async targetTokenAddress => {
         const targetTokenSymbol = targetTokens[targetTokenAddress]
         console.log(`Fetching ${targetTokenSymbol} pairs...`)
         const pairs = await uniswap.getAllTokenPairs(targetTokenAddress)
-        console.log(`${pairs.length} ${targetTokenSymbol} pairs found`)
         for (const pair of pairs) {
             const pairAddress = pair['id']
             const token0Address = pair['token0']['id']
@@ -62,8 +59,6 @@ task('trackPairs', 'Stream Uniswap pair events in real-time').setAction(async() 
                             'reserve1': eventData['reserve1']/token1Factor,
                         }
                         console.log(`${pairSymbol} SYNC:`, liquidityPayload)
-                        if (useDB)
-                            await db.Liquidity.create(liquidityPayload)
                     }
                     catch(e) {
                         console.log(e)
@@ -86,8 +81,6 @@ task('trackPairs', 'Stream Uniswap pair events in real-time').setAction(async() 
                             'amount1Out': eventData['amount1Out']/token1Factor
                         }
                         console.log(`${pairSymbol} SWAP:`, swapPayload)
-                        if (useDB)
-                            await db.Swap.create(swapPayload)
                     }
                     catch(e) {
                         console.log(e)

@@ -29,7 +29,6 @@ const trackTokens = async() => {
         tokenObservationMonitor.subscribe({
             'next': async({data}) => {  // On new entity -> calculate price and write to DB
                 try {
-                    console.log(`${targetTokenSymbol} OBSERVATION`)
                     const updatedRecord = data['tokens'][0]
                     const observationVolume = parseFloat(updatedRecord['tradeVolume'])
                     let tokenPayload = {
@@ -38,15 +37,24 @@ const trackTokens = async() => {
                         'totalTokenVolume': observationVolume,
                         'totalTokenLiquidity': parseFloat(updatedRecord['totalLiquidity'])
                     }
+                    const ethPrice = await uniswap.getETHPrice()
+                    const price = parseFloat(updatedRecord['derivedETH']) * ethPrice
+                    tokenPayload['price'] = price
+                    console.log(`${targetTokenSymbol} OBSERVATION:`, tokenPayload)
                     // Data correctness: All-time volume should be strictly constant or increasing. If a lower number is observed, set
                     // volume to the highest observed
                     let highestObservedVolume = highestObservedVolumes[targetTokenAddress]
                     if (highestObservedVolume == null) {
-                        const lastObservation = await db.TokenObservation.findOne({
-                            'where': {'address': targetTokenAddress},
-                            'order': [['datestamp', 'DESC']],
-                            'raw': true
-                        })
+                        let lastObservation
+                        if (useDB) {
+                            lastObservation = await db.TokenObservation.findOne({
+                                'where': {'address': targetTokenAddress},
+                                'order': [['datestamp', 'DESC']],
+                                'raw': true
+                            })
+                        }
+                        else
+                            lastObservation = null
                         if (lastObservation == null)
                             highestObservedVolume = 0
                         else
@@ -55,12 +63,10 @@ const trackTokens = async() => {
                     }
                     if (observationVolume > highestObservedVolume) {
                         highestObservedVolumes[targetTokenAddress] = observationVolume
-                        console.log(`---> New highest volume: ${observationVolume}`)
+                        console.log(`---> New highest volume: ${observationVolume.toLocaleString()}`)
                     }
                     else
                         tokenPayload['totalTokenVolume'] = highestObservedVolume
-                    const ethPrice = await uniswap.getETHPrice()
-                    tokenPayload['price'] = parseFloat(updatedRecord['derivedETH']) * ethPrice
                     if (useDB) {
                         await db.TokenObservation.create(tokenPayload)
                         const [liquidity, volume] = await uniswap.getTokenLiquidityAndVolume(targetTokenAddress)

@@ -20,80 +20,6 @@ const sequelize = new Sequelize(
     }
 )
 
-// Time series of a pair contract's liquidity events. Tracks the running reserve levels
-const Liquidity = sequelize.define(
-    'Liquidity',
-    {
-        'address': {
-            'type': Sequelize.STRING,
-            'allowNull': false,
-            'primaryKey': true
-        },
-        'datestamp': {
-            'type': Sequelize.DATE,
-            'allowNull': false,
-            'primaryKey': true
-        },
-        'token0': {
-            'type': Sequelize.STRING,
-            'allowNull': false
-        },
-        'token1': {
-            'type': Sequelize.STRING,
-            'allowNull': false
-        },
-        'reserve0': {
-            'type': Sequelize.DECIMAL,
-            'allowNull': false
-        },
-        'reserve1': {
-            'type': Sequelize.DECIMAL,
-            'allowNull': false
-        }
-    }
-)
-
-// Time series of a pair contract's swap events
-const Swap = sequelize.define(
-    'Swap',
-    {
-        'address': {
-            'type': Sequelize.STRING,
-            'allowNull': false,
-            'primaryKey': true
-        },
-        'datestamp': {
-            'type': Sequelize.DATE,
-            'allowNull': false,
-            'primaryKey': true
-        },
-        'token0': {
-            'type': Sequelize.STRING,
-            'allowNull': false,
-        },
-        'token1': {
-            'type': Sequelize.STRING,
-            'allowNull': false,
-        },
-        'amount0In': {
-            'type': Sequelize.DECIMAL,
-            'allowNull': true,
-        },
-        'amount0Out': {
-            'type': Sequelize.DECIMAL,
-            'allowNull': true,
-        },
-        'amount1In': {
-            'type': Sequelize.DECIMAL,
-            'allowNull': true,
-        },
-        'amount1Out': {
-            'type': Sequelize.DECIMAL,
-            'allowNull': true,
-        }
-    }
-)
-
 // Time series of observed token entities published on Uniswap subgraph
 const TokenObservation = sequelize.define(
     'TokenObservation',
@@ -125,7 +51,5 @@ const TokenObservation = sequelize.define(
 
 module.exports = {
     sequelize,
-    Liquidity,
-    Swap,
     TokenObservation,
 }

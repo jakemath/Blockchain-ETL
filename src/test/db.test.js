@@ -9,9 +9,7 @@ const TEST_ADDRESS = '1'
 
 beforeAll(async() => {
     await db.TokenObservation.destroy({
-        'where': {
-            'address': TEST_ADDRESS
-        }
+        'where': {'address': TEST_ADDRESS}
     })
 })
 
@@ -40,9 +38,7 @@ test('Create TokenObservations', async() => {
 test('Get TokenObservations', async() => {
     expect.assertions(31);
     const observations = await db.TokenObservation.findAll({
-        'where': {
-            'address': TEST_ADDRESS
-        },
+        'where': {'address': TEST_ADDRESS},
         'raw': true
     })
     expect(observations.length).toEqual(10)
@@ -56,14 +52,10 @@ test('Get TokenObservations', async() => {
 test('Delete TokenObservations', async() => {
     expect.assertions(1)
     await db.TokenObservation.destroy({
-        'where': {
-            'address': TEST_ADDRESS
-        },
+        'where': {'address': TEST_ADDRESS},
     })
     const observations = await db.TokenObservation.findAll({
-        'where': {
-            'address': TEST_ADDRESS
-        },
+        'where': {'address': TEST_ADDRESS},
         'raw': true
     })
     expect(observations.length).toEqual(0)

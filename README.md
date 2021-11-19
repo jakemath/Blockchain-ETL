@@ -141,8 +141,12 @@ By supporting many different data feeds on the same machine, the single-host arc
 ### Distributed Architecture
 ![Distributed Design](distributed_design.png)
 
-In the distributed architecture, all individual components are decoupled into their own services across various nodes. This architecture could be built using a multi-host container orchestration service such as Kubernetes or Docker Swarm. 
+In the distributed architecture, all individual components are decoupled into their own services across various nodes. Each data feed is run on its own node as a standalone container, eliminating the need for `docker-compose` on the node itself. Building and coordinating the various nodes could be accomplished using a multi-host container orchestration service such as Kubernetes or Docker Swarm. 
 
-An additional key feature in this architecture is the message queue service (RabbitMQ in this example). Message queue architectures are especially powerful for data platforms due to their scalability and flexibility. Among other things, a message queue allows horizontal scalability, asynchronous execution of tasks such as writing data to a database, and, in the case of task failure, automatic retries with exponential backoff.
+The RDBMS system (PostgreSQL) is replaced with a hosted data warehouse service, such as Google BigQuery. This type of storage lends itself to better scalability for big data. 
+
+An additional key feature in this architecture is the message queue cluster (BullMQ + Redis) sitting between the data feeds and the data warehouse. Instead of writing the datapoints directly to the data storage service, the feeds submit messages containing the data to the cluster to offload the work.
+
+Message queue architectures are especially powerful for data platforms due to their scalability and flexibility. Among the many benefits, a message queue easily enables horizontal scalability, asynchronous execution of tasks, and, in the case of task failure, automatic retries with exponential backoff. Computational and I/O work can be effectively offloaded to worker nodes while the data feed nodes can focus on ingesting the feeds.
 
 The distributed architecture is built to scale.

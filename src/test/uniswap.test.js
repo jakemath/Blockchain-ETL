@@ -12,9 +12,7 @@ const TEST_ADDRESS = '2'
 
 beforeAll(async() => {
     await db.TokenObservation.destroy({
-        'where': {
-            'address': TEST_ADDRESS
-        }
+        'where': {'address': TEST_ADDRESS}
     })
 })
 
@@ -59,8 +57,6 @@ test('getTokenLiquidityAndVolume', async() => {
 
 afterAll(async() => {
     await db.TokenObservation.destroy({
-        'where': {
-            'address': TEST_ADDRESS
-        }
+        'where': {'address': TEST_ADDRESS}
     })
 })

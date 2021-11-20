@@ -139,7 +139,7 @@ The `TokenObservation` items are used to calculate USD-denominated liquidity and
 By supporting many different data feeds on the same machine, the single-host architecture effectively maximizes server resources. A true production-grade data platform, however, may seek to decouple the various components into a distributed system, like the diagram below illustrates.
 
 ### Distributed Architecture
-![Distributed Design](distributed_design.png)
+![Distributed Design](distributed_design1.png)
 
 In the distributed architecture, all individual components are decoupled into their own services across various nodes. Additionally, a message queue cluster is used to coordinate tasks and processes. Message queue architectures are especially powerful for data platforms due to their scalability and flexibility. Among the many benefits, a message queue easily enables horizontal scalability, asynchronous execution of tasks, custom task routing, and, in the case of task failure, automatic retries with exponential backoff.
 

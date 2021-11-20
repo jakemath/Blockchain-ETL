@@ -139,7 +139,7 @@ The `TokenObservation` items are used to calculate USD-denominated liquidity and
 By supporting many different data feeds on the same machine, the single-host architecture effectively maximizes server resources. A true production-grade data platform, however, may seek to decouple the various components into a distributed system, like the diagram below illustrates.
 
 ### Distributed Architecture
-![Distributed Design](distributed_design.png)
+![Distributed Design](distributed_design1.png)
 
 In the distributed architecture, all individual components are decoupled into their own services across various nodes. Each data feed is run on its own node as a standalone container, eliminating the need for `docker-compose` on the node itself. Building and coordinating the various nodes could be accomplished using a multi-host container orchestration service such as Kubernetes or Docker Swarm. 
 

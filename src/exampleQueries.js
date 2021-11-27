@@ -5,20 +5,27 @@ Purpose: Query 24-hour uniswap stats
 
 const { UniswapClient } = require('./utils/uniswap')
 
+// Dates available: 2021-11-18, 2021-11-19, 2021-11-20
 BADGER = '0x3472a5a71965499acd81997a54bba8d852c6e53d'
 
 let fetchStats = async() => {
     const uniswap = UniswapClient()
-    let stats = await uniswap.getTokenLiquidityAndVolume(BADGER)
-    console.log(`BADGER 24-hour stats from now`)
-    console.log(`---> Liquidity: $${stats[0].toLocaleString()}`)
-    console.log(`---> Volume: $${stats[1].toLocaleString()}`)
-    let date = new Date()
-    date.setUTCDate(date.getUTCDate() - 2)
-    stats = await uniswap.getTokenLiquidityAndVolume(BADGER, date)
-    console.log(`BADGER 48-hour stats from today`)
-    console.log(`---> Liquidity: $${stats[0].toLocaleString()}`)
-    console.log(`---> Volume: $${stats[1].toLocaleString()}`)
+    const windows = [
+        ['2021-11-18', '2021-11-19'],
+        ['2021-11-18', '2021-11-20'],
+        ['2021-11-18', '2021-11-21'],
+        ['2021-11-19', '2021-11-20'],
+        ['2021-11-19', '2021-11-21'],
+        ['2021-11-20', '2021-11-21']
+    ]
+    for (const window of windows) {
+        const fromDate = window[0]
+        const toDate = window[1]
+        let stats = await uniswap.getTokenLiquidityAndVolume(BADGER, fromDate, toDate)
+        console.log(`BADGER stats from ${fromDate} to ${toDate}`)
+        console.log(`---> Liquidity: $${stats[0].toLocaleString()}`)
+        console.log(`---> Volume: $${stats[1].toLocaleString()}\n`)
+    }
 }
 
 module.exports = {

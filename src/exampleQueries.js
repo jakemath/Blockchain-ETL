@@ -19,10 +19,10 @@ let fetchStats = async() => {
         ['2021-11-20', '2021-11-21']
     ]
     for (const window of windows) {
-        const fromDate = window[0]
-        const toDate = window[1]
+        const fromDate = new Date(window[0])
+        const toDate = new Date(window[1])
         let stats = await uniswap.getTokenLiquidityAndVolume(BADGER, fromDate, toDate)
-        console.log(`BADGER stats from ${fromDate} to ${toDate}`)
+        console.log(`BADGER stats from ${fromDate.toLocaleString()} to ${toDate.toLocaleString()}`)
         console.log(`---> Liquidity: $${stats[0].toLocaleString()}`)
         console.log(`---> Volume: $${stats[1].toLocaleString()}\n`)
     }

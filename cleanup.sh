@@ -1,6 +1,9 @@
 #!/bin/bash
 # Author: Jake Mathai
-# Purpose: Stop running containers and wipe all images & volumes. WARNING: deletes all DB data
+# Purpose: Stop running containers and wipe all images & volumes
+TASK=$1
 cd src
-sudo docker-compose down
+cp conf/${TASK}.yml .
+sudo docker-compose -f ${TASK}.yml down
 sudo docker system prune --force --all --volumes
+rm ${TASK}.yml

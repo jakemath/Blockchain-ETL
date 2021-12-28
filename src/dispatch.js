@@ -3,12 +3,8 @@ Author: Jake Mathai
 Purpose: Entrypoint script for running tasks. Reads the TASK environment variable mapping to configurations in conf.json
 */
 
-const { migrate } = require('./db/migrations')
-
 const dispatch = async() => {
     const configData = require('./conf')[process.env['TASK']]
-    if (process.env['PROD'] == 'true')  // If prod --> migrate DB
-        await migrate()
     const taskFunction = configData['function']
     if (configData['onChain'] == 'true') {  // If on-chain --> run in hardhat runtime environment
         const hre = require('hardhat')

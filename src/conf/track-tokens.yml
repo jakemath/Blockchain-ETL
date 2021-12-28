@@ -1,0 +1,11 @@
+version: '3'
+services:
+  track-tokens:  # Uniswap off-chain data streaming task
+    restart: unless-stopped
+    container_name: track-tokens
+    build:
+      context: .
+      dockerfile: ./conf/Dockerfile
+    command: ['node', 'dispatch.js']
+    environment:
+      - TASK=track-tokens

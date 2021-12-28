@@ -1,4 +1,9 @@
 {
+    "archiver": {
+        "module": "tasks/archiver",
+        "function": "archiver",
+        "onChain": "true"
+    },
     "track-tokens": {
         "module": "tasks/uniswapOffChain",
         "function": "trackTokens",

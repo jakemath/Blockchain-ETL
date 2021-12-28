@@ -3,9 +3,6 @@ Author: Jake Mathai
 Purpose: Uniswap client
 */
 
-const { Op } = require('sequelize')
-
-const db = require('../db/client')
 const time = require('../utils/time')
 const { TheGraphClient } = require('../utils/thegraph')
 
@@ -38,74 +35,6 @@ const UniswapClient = () => {
             'where: {id: "1"}'
         ))[0]['ethPrice']
     )
-
-    // Filter for token observations in window
-    const getObservationsInWindow = async(tokenAddress, fromDate=null, toDate=time.now()) => {
-        if (typeof toDate == 'string')  // Coerce fromDate and toDate to datetime objects. If fromDate is null, assume 24h window before toDate
-            toDate = new Date(toDate)
-        else if (toDate == null)
-            toDate = time.now()
-        if (typeof fromDate == 'string')
-            fromDate = new Date(fromDate)
-        else if (fromDate == null) {
-            fromDate = new Date(toDate.getTime())
-            fromDate.setUTCDate(fromDate.getUTCDate() - 1)
-        }
-        return await db.TokenObservation.findAll({  // Find observations in window
-            'where': {
-                'address': tokenAddress,
-                'datestamp': {[Op.between]: [fromDate, toDate]}
-            },
-            'raw': true
-        })
-    }
-
-    // Notional USD token volume in window. Calculated as the change in total volume over the window multiplied by the volume-weighted average price
-    const calculateTokenVolume = observations => {
-        if (observations == null || observations.length < 2)
-            return 0
-        const latestTokenVolume = parseFloat(observations[observations.length - 1]['totalTokenVolume'])
-        const earliestTokenVolume = parseFloat(observations[0]['totalTokenVolume'])
-        const totalTokenVolume = latestTokenVolume - earliestTokenVolume
-        let volumeWeightedAveragePrice = 0
-        for (let i = 1; i < observations.length; ++i) {
-            const tokenVolume = parseFloat(observations[i]['totalTokenVolume']) - parseFloat(observations[i - 1]['totalTokenVolume'])
-            volumeWeightedAveragePrice += parseFloat(observations[i]['price']) * tokenVolume / totalTokenVolume
-        }
-        return totalTokenVolume * volumeWeightedAveragePrice
-    }
-
-    // Get uniswap trading volume for a token denominated in USD
-    const getTokenVolume = async(tokenAddress, fromDate=null, toDate=time.now()) => {
-        const observations = await getObservationsInWindow(tokenAddress, fromDate, toDate)
-        return calculateTokenVolume(observations)
-    }
-
-    // Notional USD token liquidity in window. Calculated as the mean liquidity level of the token over the period multiplied by the average price
-    const calculateTokenLiquidity = observations => {
-        if (observations == null || observations.length < 2)
-            return 0
-        const prices = observations.map(observation => parseFloat(observation['price']))
-        const tokenLiquidities = observations.map(observation => parseFloat(observation['totalTokenLiquidity']))
-        const meanPrice = prices.reduce((a, b) => a + b, 0.0) / observations.length
-        const meanTokenLiquidity = tokenLiquidities.reduce((a, b) => a + b, 0.0) / observations.length
-        return meanTokenLiquidity * meanPrice
-    }
-
-    // Get aggregate token liquidity for a token denominated in USD
-    const getTokenLiquidity = async(tokenAddress, fromDate=null, toDate=time.now()) => {
-        const observations = await getObservationsInWindow(tokenAddress, fromDate, toDate)
-        return calculateTokenLiquidity(observations)
-    }
-
-    // Run liquidity and volume calcs on a single DB query
-    const getTokenLiquidityAndVolume = async(tokenAddress, fromDate=null, toDate=time.now()) => {
-        const observations = await getObservationsInWindow(tokenAddress, fromDate, toDate)
-        return [
-            calculateTokenLiquidity(observations), 
-            calculateTokenVolume(observations)
-        ]
-    }
 
     const subscribeToToken = (tokenAddress, interval=1000) => (
         thegraph.watchQuery(

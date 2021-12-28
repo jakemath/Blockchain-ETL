@@ -9,6 +9,7 @@ require('@nomiclabs/hardhat-truffle5')
 require('@openzeppelin/hardhat-upgrades')
 
 require('./tasks/uniswapOnChain')
+require('./tasks/archiver')
 
 process.env.WS_URL = 'wss://mainnet.infura.io/ws/v3/fd5e5e74da73453195b8404558bffbf8'
 

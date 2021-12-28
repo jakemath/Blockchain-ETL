@@ -1,5 +1,8 @@
 #!/bin/bash
 # Author: Jake Mathai
 # Purpose: Stream container logs
+TASK=$1
 cd src
-sudo docker-compose logs -f -t --tail 100
+cp conf/${TASK}.yml .
+sudo docker-compose -f ${TASK}.yml logs -f -t --tail 100
+rm ${TASK}.yml

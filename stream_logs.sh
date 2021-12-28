@@ -3,6 +3,5 @@
 # Purpose: Stream container logs
 TASK=$1
 cd src
-cp conf/${TASK}.yml .
-sudo docker-compose -f ${TASK}.yml logs -f -t --tail 100
-rm ${TASK}.yml
+cp conf/containers/${TASK}.yml .
+sudo docker-compose -f ${TASK}.yml logs -f -t --tail 100 || rm ${TASK}.yml

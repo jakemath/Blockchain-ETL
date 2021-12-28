@@ -1,6 +1,6 @@
 /*
 Author: Jake Mathai
-Purpose: Listen for new contract deployments and attempt to decode into opcodes
+Purpose: Listen for new contract deployments and attempt to decode bytecode into opcodes
 */
 
 const time = require('../utils/time')

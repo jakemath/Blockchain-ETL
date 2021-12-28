@@ -5,7 +5,7 @@ Purpose: EVM bytecode decompiler
 
 const { EVM } = require('evm')
 
-let opcodes = require('../data/opcodes.json')
+let opcodes = require('./opcodes.json')
 
 const toOpcode = bytecode => {
     let instructions = []

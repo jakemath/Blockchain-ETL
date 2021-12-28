@@ -3,7 +3,6 @@ Author: Jake Mathai
 Purpose: Uniswap client
 */
 
-const time = require('../utils/time')
 const { TheGraphClient } = require('../utils/thegraph')
 
 const UniswapClient = () => {

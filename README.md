@@ -10,7 +10,7 @@ Blockchain operations framework capable of streaming and storing data from on an
 2. track-pairs (on-chain) 
     - Streams events emitted from all Pair contracts for target tokens
 3. archiver (on-chain)
-    - Listens new contract deployments in real-time and decodes contract bytecode
+    - Listens for new contract deployments block-by-block and attempts to decode contract bytecode
 ```
 
 ## Setup

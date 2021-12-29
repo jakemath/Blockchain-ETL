@@ -3,8 +3,9 @@ Author: Jake Mathai
 Purpose: Listen for new contract deployments and attempt to decode bytecode into opcodes
 */
 
+const { EVM } = require('evm');
+
 const time = require('../utils/time')
-const decompiler = require('../utils/decompiler')
 
 task('archiver', 'Decompiles newly deployed contracts').setAction(async() => {
 
@@ -21,8 +22,12 @@ task('archiver', 'Decompiles newly deployed contracts').setAction(async() => {
                 'contractAddress': contractAddress,
                 'bytecode': bytecode,
             }
+            const evm = new EVM(bytecode)
             try {
-                deploymentEvent['opcodes'] = decompiler.toOpcode(bytecode)
+                deploymentEvent['opcodes'] = evm.getOpcodes()
+                deploymentEvent['functions'] = evm.getFunctions()
+                deploymentEvent['events'] = evm.getEvents()
+                // deploymentEvent['decompile'] = evm.decompile()
             }
             catch(e) {
                 console.log(e)

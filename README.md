@@ -26,7 +26,7 @@ Ensure you have the latest versions of `docker` & `docker-compose` on your machi
 Move into the project directory and run the containers
 ```bash
 cd ~/blockops
-bash run.sh archiver
+./run.sh archiver
 ```
 
 This will build and run the relevant task containers defined in `docker-compose.yml` using `docker-compose`.
@@ -34,19 +34,19 @@ This will build and run the relevant task containers defined in `docker-compose.
 #### Stream Logs
 In the containerized deployment, logs from all containers will automatically be streamed to the console. You can manually stream the logs via
 ```bash
-bash stream_logs.sh archiver
+./stream_logs.sh archiver
 ```
 
 #### Terminate All Tasks
 Stop and remove all containers
 ```bash
-bash stop.sh archiver
+./stop.sh archiver
 ```
 
 #### Clear Cache
 Wipe all Docker images, container data, and volumes (WARNING: clears all database data as well)
 ```bash
-bash cleanup.sh archiver
+./cleanup.sh archiver
 ```
 
 ### Quickstart - Local

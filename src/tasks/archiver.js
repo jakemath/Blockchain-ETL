@@ -25,9 +25,9 @@ task('archiver', 'Decompiles newly deployed contracts').setAction(async() => {
                 deploymentEvent['opcodes'] = decompiler.toOpcode(bytecode)
             }
             catch(e) {
-                console.log(time.now(), e)
+                console.log(e)
             }
-            console.log(time.now(), deploymentEvent)
+            console.log(deploymentEvent)
         }
         catch(e) {
             
@@ -39,7 +39,7 @@ task('archiver', 'Decompiles newly deployed contracts').setAction(async() => {
     const listen = async() => {
         provider = new ethers.providers.WebSocketProvider(process.env.WS_URL, 'mainnet')
         provider.on('block', async blockNumber => {
-            console.log(time.now(), 'New block:', blockNumber)
+            console.log('New block:', blockNumber)
             const block = await provider.getBlockWithTransactions(blockNumber)
             for (const transaction of block.transactions)
                 inspectTransaction(provider, transaction)
@@ -48,7 +48,7 @@ task('archiver', 'Decompiles newly deployed contracts').setAction(async() => {
             console.log('Provider error:', error)
             provider = null
         })
-        console.log(time.now(), 'Provider initialized')
+        console.log('Provider initialized')
     }
 
     await listen()

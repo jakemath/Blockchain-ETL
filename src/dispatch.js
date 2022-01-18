@@ -4,7 +4,7 @@ Purpose: Entrypoint script for running tasks. Reads the TASK environment variabl
 */
 
 const dispatch = async() => {
-    const configData = require('./conf/tasks.json')[process.env['TASK']]
+    const configData = require('./conf/tasks.json')[process.argv[2] || process.env['TASK']]
     const taskFunction = configData['function']
     if (configData['onChain'] == 'true') {  // If on-chain --> run in hardhat runtime environment
         const hre = require('hardhat')

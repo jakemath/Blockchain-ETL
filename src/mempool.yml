@@ -1,0 +1,11 @@
+version: "3"
+services:
+  mempool:  # Uniswap on-chain data streaming container
+      restart: unless-stopped
+      container_name: mempool
+      build:
+        context: .
+        dockerfile: ./conf/Dockerfile
+      command: ['node', 'dispatch.js']
+      environment:
+        - TASK=mempool

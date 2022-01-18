@@ -10,8 +10,9 @@ require('@openzeppelin/hardhat-upgrades')
 
 require('./tasks/uniswapOnChain')
 require('./tasks/archiver')
+require('./tasks/mempool')
 
-process.env.WS_URL = 'wss://mainnet.infura.io/ws/v3/61bee94f08184b74ad949ff1e125a730'
+process.env.WS_URL = 'wss://mainnet.infura.io/ws/v3/6ba07e2146f149399b065d3442960a20' //'wss://mainnet.infura.io/ws/v3/61bee94f08184b74ad949ff1e125a730'
 
 module.exports = {
   'solidity': '0.8.4',

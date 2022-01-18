@@ -27,7 +27,7 @@ task('archiver', 'Decompiles newly deployed contracts').setAction(async() => {
                 deploymentEvent['opcodes'] = evm.getOpcodes()
                 deploymentEvent['functions'] = evm.getFunctions()
                 deploymentEvent['events'] = evm.getEvents()
-                // deploymentEvent['decompile'] = evm.decompile()
+                deploymentEvent['decompile'] = evm.decompile()
             }
             catch(e) {
                 console.log(e)
@@ -51,16 +51,12 @@ task('archiver', 'Decompiles newly deployed contracts').setAction(async() => {
         })
         provider.on('error', async error => {
             console.log('Provider error:', error)
-            provider = null
         })
         console.log('Provider initialized')
     }
 
     await listen()
-    while (true) {
+    while (true)
         await time.sleep(60)
-        if (provider == null)
-            await listen()
-    }
 })
 

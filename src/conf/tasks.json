@@ -4,6 +4,11 @@
         "function": "archiver",
         "onChain": "true"
     },
+    "mempool": {
+        "module": "tasks/mempool",
+        "function": "mempool",
+        "onChain": "true"
+    },
     "track-tokens": {
         "module": "tasks/uniswapOffChain",
         "function": "trackTokens",

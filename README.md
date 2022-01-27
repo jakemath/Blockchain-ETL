@@ -1,5 +1,5 @@
 # BlockOps
-Blockchain operations framework capable of streaming and storing data from on and off-chain sources using Node.js, Hardhat & Ethers.js. Includes sample on and off-chain data streaming implementations for Uniswap V2.
+General-purpose blockchain operations framework. Highly effective for streaming and storing data from on and off-chain sources; includes sample on and off-chain data streaming tasks for demonstration.
 
 ## Available Tasks
 ```
